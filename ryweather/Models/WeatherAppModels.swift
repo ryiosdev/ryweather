@@ -12,21 +12,12 @@ struct LocationSearchResultModel {
     var locations: [LocationModel]
 }
 
-@Model
-class LocationModel: Identifiable {
-    var id: UUID
-    var name: String?
-    @Transient var currentWeather: WeatherModel?
-    
-    init(id: UUID = UUID(), name: String? = nil, currentWeather: WeatherModel? = nil) {
-        self.id = id
-        self.name = name
-        self.currentWeather = currentWeather
-    }
+struct LocationModel {
+    var name: String
+    var currentWeather: WeatherModel?
 }
 
-struct WeatherModel: Identifiable, Codable {
-    var id: UUID = UUID()
+struct WeatherModel  {
     var temp: Double
     var humidity: Int?
     var feelsLike: Double?
@@ -34,8 +25,7 @@ struct WeatherModel: Identifiable, Codable {
     var condition: WeatherConditionModel
 }
 
-struct WeatherConditionModel: Identifiable, Codable {
-    var id: UUID = UUID()
+struct WeatherConditionModel {
     var text: String
     var iconUrl: String?
 }

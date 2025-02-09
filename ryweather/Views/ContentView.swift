@@ -16,7 +16,12 @@ struct ContentView: View {
     
     var body: some View {
         NavigationSplitView {
+            
             List {
+                if let location = viewModel.currentLocation {
+                    Text(location.name)
+                }
+                
                 ForEach(items) { item in
                     NavigationLink {
                         Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
@@ -47,14 +52,14 @@ struct ContentView: View {
     }
 
     private func addItem() {
-//        withAnimation {
-//            let newItem = Item(timestamp: Date())
-//            modelContext.insert(newItem)
+        withAnimation {
+            let newItem = Item(timestamp: Date())
+            modelContext.insert(newItem)
             
-//        }
+        }
         Task {
             do {
-                try await viewModel.updateCurrentLocation("78260")
+                try await viewModel.updateCurrentLocation("San Antonio")
             } catch {
                 print(error)
             }
@@ -75,3 +80,4 @@ struct ContentView: View {
     ContentView()
         .modelContainer(for: Item.self, inMemory: true)
 }
+

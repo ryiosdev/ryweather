@@ -5,6 +5,7 @@
 //  Created by Ryan Young on 2/8/25.
 //
 
+import Foundation
 import Observation
 
 enum WeatherViewState {
@@ -24,8 +25,8 @@ extension ContentView {
         
         @ObservationIgnored private var weatherDataProvider: WeatherDataProvider
         
-        init(_ weatherProvider: WeatherDataProvider = WeatherAPIDataSource(apiKey: "not your api key")) {
-            print("weather view model setting provider: \(String(describing: weatherProvider))")
+        init(_ weatherProvider: WeatherDataProvider = WeatherAPIDataSource(apiKey: UserDefaults.standard.string(forKey: "apikey") ?? "")) {
+            print("weather provider: \(String(describing: weatherProvider))")
             weatherDataProvider = weatherProvider
         }
         

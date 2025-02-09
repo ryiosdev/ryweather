@@ -9,8 +9,7 @@ import Foundation
 
 protocol WeatherDataProvider {
     func searchFor(_ location: String) async throws -> LocationSearchResultModel
-    func fetchCurrentWeatherFor(_ string: String) async throws -> LocationModel
-    func fetchCurrentWeatherFor(location: LocationModel) async throws -> LocationModel
+    func fetchCurrentWeatherFor(_ query: String) async throws -> LocationModel
 }
 
 enum WeatherDataError: Error {
@@ -45,20 +44,15 @@ struct WeatherAPIDataSource: WeatherDataProvider {
         throw WeatherDataError.invalidData
     }
 
-    func fetchCurrentWeatherFor(_ string: String) async throws -> LocationModel {
-        try await fetchCurrentWeatherFor(location: LocationModel(name: string))
-    }
-    
-    func fetchCurrentWeatherFor(location: LocationModel) async throws -> LocationModel {
-        let url = try urlWithKey(for: .current).appending(queryItems: [URLQueryItem(name: "q", value: location.name)])
+    func fetchCurrentWeatherFor(_ query: String) async throws -> LocationModel {
+        let url = try urlWithKey(for: .current).appending(queryItems: [URLQueryItem(name: "q", value: query)])
 
         print("url = \(url)")
 
         let (data, response) = try await URLSession.shared.data(from: url)
-        print("got current weather response.")
 
         guard let response = response as? HTTPURLResponse, response.statusCode == 200 else {
-            print("response: \(String(describing: response))")
+            print("non-200 response: \(String(describing: response))")
             throw WeatherDataError.invalidResponse
         }
 
@@ -66,7 +60,6 @@ struct WeatherAPIDataSource: WeatherDataProvider {
             let decoder = JSONDecoder()
             decoder.keyDecodingStrategy = .convertFromSnakeCase
             let jsonModel = try decoder.decode(CurrentWetherJsonResponse.self, from: data)
-            print("got json model: \(jsonModel)")
             return jsonModel.toLocationModel()
         } catch {
             print(error)
