@@ -5,17 +5,24 @@
 //  Created by Ryan Young on 2/8/25.
 //
 import Foundation
+import SwiftData
 
-struct LocationSearchResultModel: Identifiable, Codable {
-    var id: UUID = UUID()
+struct LocationSearchResultModel {
     var userQueryString: String
     var locations: [LocationModel]
 }
 
-struct LocationModel: Identifiable, Codable {
-    var id: UUID = UUID()
+@Model
+class LocationModel: Identifiable {
+    var id: UUID
     var name: String?
-    var currentWeather: WeatherModel?
+    @Transient var currentWeather: WeatherModel?
+    
+    init(id: UUID = UUID(), name: String? = nil, currentWeather: WeatherModel? = nil) {
+        self.id = id
+        self.name = name
+        self.currentWeather = currentWeather
+    }
 }
 
 struct WeatherModel: Identifiable, Codable {

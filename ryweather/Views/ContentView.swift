@@ -8,15 +8,11 @@
 import SwiftUI
 import SwiftData
 
-
-
-
 struct ContentView: View {
+    // ViewModels
     @Environment(\.modelContext) private var modelContext
     @Query private var items: [Item]
-
-    
-    @State private var viewModel = WeatherSearchViewModel()
+    @State private var viewModel = WeatherViewModel()
     
     var body: some View {
         NavigationSplitView {
