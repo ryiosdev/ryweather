@@ -5,44 +5,49 @@
 //  Created by Ryan Young on 2/7/25.
 //
 
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 struct ContentView: View {
     // ViewModels
     @Environment(\.modelContext) private var modelContext
     @Query private var items: [Item]
-    @State private var viewModel = WeatherViewModel()
-    
+
+    @State private var viewModel: WeatherViewModel
+    @State private var locationQuery = ""
+
+    init(_ modelContext: ModelContext) {
+        let weatherViewModel = WeatherViewModel(modelContext)
+        _viewModel = State(initialValue: weatherViewModel)
+    }
+
     var body: some View {
         NavigationSplitView {
-            
             List {
                 if let location = viewModel.currentLocation {
                     Text(location.name)
                 }
-                
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
-                    }
+                if let temp = viewModel.currentLocation?.currentWeather?.temp {
+                    Text("Temp: \(temp)ºF")
                 }
-                .onDelete(perform: deleteItems)
             }
-#if os(macOS)
-            .navigationSplitViewColumnWidth(min: 180, ideal: 200)
-#endif
+            #if os(macOS)
+                .navigationSplitViewColumnWidth(min: 180, ideal: 200)
+            #endif
             .toolbar {
-#if os(iOS)
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-#endif
+                #if os(iOS)
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        EditButton()
+                    }
+                #endif
                 ToolbarItem {
                     Button(action: addItem) {
                         Label("Add Item", systemImage: "plus")
+                    }
+                }
+                ToolbarItem {
+                    Button(action: queryWeather) {
+                        Label("Search", systemImage: "magnifyingglass")
                     }
                 }
             }
@@ -55,11 +60,14 @@ struct ContentView: View {
         withAnimation {
             let newItem = Item(timestamp: Date())
             modelContext.insert(newItem)
-            
+
         }
+    }
+
+    private func queryWeather() {
         Task {
             do {
-                try await viewModel.updateCurrentLocation("San Antonio")
+                try await viewModel.fetchCurrentWeather(for: "San Antonio")
             } catch {
                 print(error)
             }
@@ -76,8 +84,7 @@ struct ContentView: View {
     }
 }
 
-#Preview {
-    ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
-}
-
+//#Preview {
+//    ContentView
+//        .modelContainer(for: Item.self, inMemory: true)
+//}

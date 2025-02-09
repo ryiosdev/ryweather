@@ -8,8 +8,8 @@
 import Foundation
 
 protocol WeatherDataProvider {
-    func searchFor(_ location: String) async throws -> LocationSearchResultModel
-    func fetchCurrentWeatherFor(_ query: String) async throws -> LocationModel
+    func search(for location: String) async throws -> LocationSearchResultModel
+    func fetchCurrentWeather(for location: String) async throws -> LocationModel
 }
 
 enum WeatherDataError: Error {
@@ -35,7 +35,7 @@ struct WeatherAPIDataSource: WeatherDataProvider {
         return url.appending(queryItems: [URLQueryItem(name: "key", value: apiKey)])
     }
     
-    func searchFor(_ location: String) async throws -> LocationSearchResultModel {
+    func search(for location: String) async throws -> LocationSearchResultModel {
         let url = try urlWithKey(for: .search).appending(queryItems: [URLQueryItem(name: "q", value: location)])
         
         print("url = \(url)")
@@ -44,8 +44,8 @@ struct WeatherAPIDataSource: WeatherDataProvider {
         throw WeatherDataError.invalidData
     }
 
-    func fetchCurrentWeatherFor(_ query: String) async throws -> LocationModel {
-        let url = try urlWithKey(for: .current).appending(queryItems: [URLQueryItem(name: "q", value: query)])
+    func fetchCurrentWeather(for location: String) async throws -> LocationModel {
+        let url = try urlWithKey(for: .current).appending(queryItems: [URLQueryItem(name: "q", value: location)])
 
         print("url = \(url)")
 
@@ -65,8 +65,6 @@ struct WeatherAPIDataSource: WeatherDataProvider {
             print(error)
             throw WeatherDataError.invalidData
         }
-        
-
     }
     
     private struct CurrentWetherJsonResponse: Codable {
