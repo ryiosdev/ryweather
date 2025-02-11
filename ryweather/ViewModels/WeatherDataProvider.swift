@@ -39,8 +39,8 @@ struct WeatherAPIDataSource: WeatherDataProvider {
         let url = try urlWithKey(for: .search).appending(queryItems: [URLQueryItem(name: "q", value: location)])
         
         print("url = \(url)")
-        
         //TODO: add search
+        //return LocationSearchResultModel(userQueryString: "", locations: [])
         throw WeatherDataError.invalidData
     }
 
@@ -67,17 +67,23 @@ struct WeatherAPIDataSource: WeatherDataProvider {
         }
     }
     
+    //https://www.weatherapi.com/docs/#apis-realtime
     private struct CurrentWetherJsonResponse: Codable {
         let location: Location
         let current: Current
+        
         struct Location: Codable {
             let name: String
+            let region: String
+            let country: String
         }
+        
         struct Current: Codable {
             let tempC: Double
             let tempF: Double
-            let humidity: Int
-            let uv: Double
+            let feelslikeC: Double
+            let feelslikeF: Double
+            let isDay: Bool
             let condition: Condition
             struct Condition: Codable {
                 let text: String
@@ -87,10 +93,11 @@ struct WeatherAPIDataSource: WeatherDataProvider {
         
         func toLocationModel() -> LocationModel {
             let condtion = WeatherConditionModel(text: current.condition.text,
-                                                 iconUrl: current.condition.icon)
+                                                 iconUrl: "https:" + current.condition.icon)
+            // TODO: pass bck both C and F temps.. let user decide in a setting switch.
             let currentWeather = WeatherModel(temp: current.tempF,
-                                              humidity: current.humidity,
-                                              uvIndex: current.uv,
+                                              feelsLike: current.feelslikeF,
+                                              isDay: current.isDay,
                                               condition: condtion)
             return LocationModel(name: location.name,
                                  currentWeather: currentWeather)

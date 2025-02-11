@@ -5,49 +5,34 @@
 //  Created by Ryan Young on 2/8/25.
 //
 import Foundation
-import SwiftData
 
-struct LocationSearchResultModel {
+struct LocationSearchResultModel: Identifiable, Hashable {
+    let id = UUID()
     var userQueryString: String
     var locations: [LocationModel]
 }
 
-@Model
-class LocationModel {
+struct LocationModel: Identifiable, Hashable {
+    let id = UUID()
     var name: String
     var currentWeather: WeatherModel?
     
     init(name: String, currentWeather: WeatherModel? = nil) {
         self.name = name
         self.currentWeather = currentWeather
+        print("new LocationModel named \(name) id: \(id)")
     }
 }
 
-@Model
-class WeatherModel  {
+struct WeatherModel: Hashable {
     var temp: Double
-    var humidity: Int?
     var feelsLike: Double?
-    var uvIndex: Double?
-    var condition: WeatherConditionModel
-    
-    init(temp: Double, humidity: Int? = nil, feelsLike: Double? = nil, uvIndex: Double? = nil, condition: WeatherConditionModel) {
-        self.temp = temp
-        self.humidity = humidity
-        self.feelsLike = feelsLike
-        self.uvIndex = uvIndex
-        self.condition = condition
-    }
+    var isDay = true
+    var condition: WeatherConditionModel?
 }
 
-@Model
-class WeatherConditionModel {
+struct WeatherConditionModel: Hashable {
     var text: String
-    var iconUrl: String?
-    
-    init(text: String, iconUrl: String? = nil) {
-        self.text = text
-        self.iconUrl = iconUrl
-    }
+    var iconUrl: String
 }
 

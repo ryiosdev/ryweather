@@ -5,21 +5,16 @@
 //  Created by Ryan Young on 2/7/25.
 //
 
-import SwiftData
 import SwiftUI
 
 @main
 struct ryweatherApp: App {
-    let container: ModelContainer
-
+    @State private var viewModel = WeatherViewModel()
     var body: some Scene {
         WindowGroup {
-            ContentView(self.container.mainContext)
-        }
-        .modelContainer(container)
-    }
+            ContentView()
+                .environment(viewModel)
 
-    init() {
-        container = try! ModelContainer(for: Item.self)
+        }
     }
 }
