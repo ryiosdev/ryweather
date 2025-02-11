@@ -6,26 +6,25 @@
 //
 
 import SwiftUI
+import os
 
 struct LocationWeatherView: View {
+    let logger = Logger()
     @Binding var locationId: LocationModel.ID?
     @Environment(WeatherViewModel.self) private var viewModel
     @ScaledMetric var scale: CGFloat = 1.0
     
-    
     private var location: Binding<LocationModel> {
         Binding {
-            if let id = locationId {
-                return viewModel.location(with: id) ?? LocationModel(name: "")
-            } else {
+            guard let id = locationId, let location = viewModel.location(with: id) else {
                 return LocationModel(name: "")
             }
-        } set: { newLocationModel in
-            viewModel.update(newLocationModel)
+            return location
+        } set: { newLocation in
+            viewModel.update(newLocation)
         }
     }
     
-
     var body: some View {
         if !viewModel.contains(locationId) {
             Text("Select a Location")
@@ -35,7 +34,6 @@ struct LocationWeatherView: View {
             VStack(spacing: 10) {
                 Text(location.wrappedValue.name)
                     .font(.title)
-                
                 HStack {
                     AsyncImage(url: URL(string: location.wrappedValue.currentWeather?.condition?.iconUrl ?? "")) { phase in
                         if let image = phase.image {

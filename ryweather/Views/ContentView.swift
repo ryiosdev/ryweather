@@ -7,13 +7,14 @@
 
 import SwiftData
 import SwiftUI
+import os
 
 struct ContentView: View {
-    
+    private let logger = Logger()
     @State private var selectedLocationId: LocationModel.ID?
     
     init() {
-        print("new ContentView")
+        logger.debug("new ContentView")
     }
     
     var body: some View {
@@ -21,6 +22,8 @@ struct ContentView: View {
             LocationList(selectedLocationId: $selectedLocationId)
         } detail: {
             LocationWeatherView(locationId: $selectedLocationId)
+        }.onAppear {
+            logger.debug("Contentview appeared")
         }
     }
 }

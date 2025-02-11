@@ -8,19 +8,24 @@
 import Foundation
 import Observation
 import SwiftData
+import os
 
-@Observable
+@Observable @MainActor
 class WeatherViewModel {
+    private let logger = Logger()
+
+    // TODO: Don't support empty list of locations, always keep the last one and prevent delete so you don't have to code "zero locations" corner caes
+
+//    var locations: [LocationModel] = []
+    
     var locations = [LocationModel(name: "San Antonio", currentWeather: WeatherModel(temp: 90, feelsLike: 100, condition: WeatherConditionModel(text: "Partly cloudy", iconUrl: "https://cdn.weatherapi.com/weather/64x64/night/116.png"))),
                      LocationModel(name: "New York"),
                      LocationModel(name: "Seattle")]
     
-//    var currentLocation: LocationModel?
-    
     @ObservationIgnored private var weatherDataProvider: WeatherDataProvider
     
     init(_ weatherProvider: WeatherDataProvider = WeatherAPIDataSource(apiKey: UserDefaults.standard.string(forKey: "apikey") ?? "")) {
-        print("new WeatherViewModel with weather provider: \(String(describing: weatherProvider))")
+        logger.debug("new WeatherViewModel with weather provider: \(String(describing: weatherProvider))")
         self.weatherDataProvider = weatherProvider
     }
     

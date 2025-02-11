@@ -16,12 +16,6 @@ struct LocationModel: Identifiable, Hashable {
     let id = UUID()
     var name: String
     var currentWeather: WeatherModel?
-    
-    init(name: String, currentWeather: WeatherModel? = nil) {
-        self.name = name
-        self.currentWeather = currentWeather
-        print("new LocationModel named \(name) id: \(id)")
-    }
 }
 
 struct WeatherModel: Hashable {

@@ -10,6 +10,7 @@ import SwiftUI
 @main
 struct ryweatherApp: App {
     @State private var viewModel = WeatherViewModel()
+    
     var body: some Scene {
         WindowGroup {
             ContentView()

@@ -6,22 +6,31 @@
 //
 
 import SwiftUI
+import os
 
 struct LocationList: View {
+    private let logger = Logger()
+
     @Binding var selectedLocationId: LocationModel.ID?
     @Environment(WeatherViewModel.self) private var viewModel
     @State private var searchText: String = ""
     
     var body: some View {
-        List(viewModel.locations, selection: $selectedLocationId) { location in
-            NavigationLink(value: location.id) {
-                HStack {
-                    Text(location.name)
-                    Spacer()
-                    Text(viewModel.formatedTemp(location.currentWeather?.temp))
+        Group {
+            if (viewModel.locations.isEmpty) {
+                placeolderRow()
+            } else {
+                List(viewModel.locations, selection: $selectedLocationId) { location in
+                    NavigationLink(value: location.id) {
+                        locationRow(location)
+                    }
+                }
+                .onAppear {
+                    logger.debug("LocationList appeared")
                 }
             }
         }
+        
 #if os(macOS)
         .navigationSplitViewColumnWidth(min: 180, ideal: 200)
 #endif
@@ -33,6 +42,27 @@ struct LocationList: View {
 #endif
         }
     }
+    
+    @ViewBuilder func locationRow(_ location: LocationModel) -> some View {
+        HStack {
+            Text(location.name)
+            Spacer()
+            Text(viewModel.formatedTemp(location.currentWeather?.temp))
+        }
+    }
+    
+    @ViewBuilder func placeolderRow() -> some View {
+        HStack {
+            Button("Select a location") {
+                bringUpSearch()
+            }
+        }
+    }
+    func bringUpSearch() {
+        logger.debug("bring up search")
+
+    }
+
 }
 
 //#Preview {

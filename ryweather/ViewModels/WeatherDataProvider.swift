@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os
 
 protocol WeatherDataProvider {
     func search(for location: String) async throws -> LocationSearchResultModel
@@ -18,41 +19,51 @@ enum WeatherDataError: Error {
     case invalidData
 }
 
-struct WeatherAPIDataSource: WeatherDataProvider {
+struct WeatherAPIDataSource {
+    static let logger = Logger()
     let apiKey: String
-    let domain = "https://api.weatherapi.com"
-    let version = "/v1"
-    
+
+    init(apiKey: String) {
+        self.apiKey = apiKey
+        WeatherAPIDataSource.logger.debug("new WeatherAPIDataSource with apiKey: \(apiKey)")
+    }
+
     enum EndpointURIs: String {
         case current = "/current.json"
         case search = "/search.json"
     }
-    
-    private func urlWithKey(for endpoint: EndpointURIs) throws -> URL {
-        guard let url = URL(string: domain + version + endpoint.rawValue) else {
+        
+    private func urlWithAPIKey(_ scheme: String = "https://",
+                               _ domain: String = "api.weatherapi.com",
+                               _ version: String = "/V1",
+                               endpoint: EndpointURIs) throws -> URL {
+        
+        guard let url = URL(string: scheme + domain + version + endpoint.rawValue) else {
             throw WeatherDataError.invalidURL
         }
         return url.appending(queryItems: [URLQueryItem(name: "key", value: apiKey)])
     }
-    
+}
+
+extension WeatherAPIDataSource: WeatherDataProvider {
     func search(for location: String) async throws -> LocationSearchResultModel {
-        let url = try urlWithKey(for: .search).appending(queryItems: [URLQueryItem(name: "q", value: location)])
+        let url = try urlWithAPIKey(endpoint: .search).appending(queryItems: [URLQueryItem(name: "q", value: location)])
         
-        print("url = \(url)")
+        WeatherAPIDataSource.logger.debug("search url = \(url)")
         //TODO: add search
         //return LocationSearchResultModel(userQueryString: "", locations: [])
         throw WeatherDataError.invalidData
     }
 
     func fetchCurrentWeather(for location: String) async throws -> LocationModel {
-        let url = try urlWithKey(for: .current).appending(queryItems: [URLQueryItem(name: "q", value: location)])
+        let url = try urlWithAPIKey(endpoint: .current).appending(queryItems: [URLQueryItem(name: "q", value: location)])
 
-        print("url = \(url)")
+        WeatherAPIDataSource.logger.debug("current weather url = \(url)")
 
         let (data, response) = try await URLSession.shared.data(from: url)
 
         guard let response = response as? HTTPURLResponse, response.statusCode == 200 else {
-            print("non-200 response: \(String(describing: response))")
+            WeatherAPIDataSource.logger.warning("non-200 response: \(String(describing: response))")
             throw WeatherDataError.invalidResponse
         }
 
@@ -62,7 +73,7 @@ struct WeatherAPIDataSource: WeatherDataProvider {
             let jsonModel = try decoder.decode(CurrentWetherJsonResponse.self, from: data)
             return jsonModel.toLocationModel()
         } catch {
-            print(error)
+            WeatherAPIDataSource.logger.error("failed to decode json: \(error)")
             throw WeatherDataError.invalidData
         }
     }
@@ -99,8 +110,10 @@ struct WeatherAPIDataSource: WeatherDataProvider {
                                               feelsLike: current.feelslikeF,
                                               isDay: current.isDay,
                                               condition: condtion)
-            return LocationModel(name: location.name,
+            let location = LocationModel(name: location.name,
                                  currentWeather: currentWeather)
+            WeatherAPIDataSource.logger.debug("new LocationModel named : \(location.name) id: \(location.id)")
+            return location
         }
     }
 }
