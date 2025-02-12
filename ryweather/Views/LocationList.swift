@@ -16,7 +16,7 @@ struct LocationList: View {
     @State private var searchText: String = ""
     
     var body: some View {
-        Group {
+        NavigationStack {
             if (viewModel.locations.isEmpty) {
                 placeolderRow()
             } else {
@@ -25,12 +25,14 @@ struct LocationList: View {
                         locationRow(location)
                     }
                 }
+                .navigationDestination(for: LocationModel.self) { _ in
+                    LocationWeatherView(locationId: $selectedLocationId)
+                }
                 .onAppear {
                     logger.debug("LocationList appeared")
                 }
             }
         }
-        
 #if os(macOS)
         .navigationSplitViewColumnWidth(min: 180, ideal: 200)
 #endif
@@ -48,6 +50,8 @@ struct LocationList: View {
             Text(location.name)
             Spacer()
             Text(viewModel.formatedTemp(location.currentWeather?.temp))
+        }.task {
+            await viewModel.fetchCurrentWeatehr(for: location)
         }
     }
     

@@ -16,6 +16,10 @@ struct LocationModel: Identifiable, Hashable {
     let id = UUID()
     var name: String
     var currentWeather: WeatherModel?
+    
+    mutating func updateCurrentWeather(_ weather: WeatherModel) {
+        self.currentWeather = weather
+    }
 }
 
 struct WeatherModel: Hashable {

@@ -15,10 +15,7 @@ class WeatherViewModel {
     private let logger = Logger()
 
     // TODO: Don't support empty list of locations, always keep the last one and prevent delete so you don't have to code "zero locations" corner caes
-
-//    var locations: [LocationModel] = []
-    
-    var locations = [LocationModel(name: "San Antonio", currentWeather: WeatherModel(temp: 90, feelsLike: 100, condition: WeatherConditionModel(text: "Partly cloudy", iconUrl: "https://cdn.weatherapi.com/weather/64x64/night/116.png"))),
+    var locations = [LocationModel(name: "San Antonio"),
                      LocationModel(name: "New York"),
                      LocationModel(name: "Seattle")]
     
@@ -69,13 +66,15 @@ class WeatherViewModel {
 }
 
 extension WeatherViewModel {
-    //TODO: Fix this up
-    func fetchCurrentWeather(for location: String) async throws {
-        let updatedLocationModel = try await weatherDataProvider.fetchCurrentWeather(for: location)
-//        self.currentLocation = updatedLocationModel
+    func fetchCurrentWeatehr(for location: LocationModel) async {
+        if let weatherModel = try? await weatherDataProvider.fetchCurrentWeather(for: location.name) {
+            if let index = locationIndex(location.id) {
+                locations[index].updateCurrentWeather(weatherModel)
+                logger.debug("fetched current weather for location[\(index)] : \(location.name)")
+            }
+        }
     }
 
-    
     // TODO: more of a UI op, move to view?...
     func formatedTemp(_ temp: Double?) -> String {
         if let temp = temp {

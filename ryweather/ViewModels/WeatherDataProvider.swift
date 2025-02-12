@@ -10,7 +10,7 @@ import os
 
 protocol WeatherDataProvider {
     func search(for location: String) async throws -> LocationSearchResultModel
-    func fetchCurrentWeather(for location: String) async throws -> LocationModel
+    func fetchCurrentWeather(for locationDescription: String) async throws -> WeatherModel
 }
 
 enum WeatherDataError: Error {
@@ -20,13 +20,8 @@ enum WeatherDataError: Error {
 }
 
 struct WeatherAPIDataSource {
-    static let logger = Logger()
+    let logger = Logger()
     let apiKey: String
-
-    init(apiKey: String) {
-        self.apiKey = apiKey
-        WeatherAPIDataSource.logger.debug("new WeatherAPIDataSource with apiKey: \(apiKey)")
-    }
 
     enum EndpointURIs: String {
         case current = "/current.json"
@@ -49,31 +44,32 @@ extension WeatherAPIDataSource: WeatherDataProvider {
     func search(for location: String) async throws -> LocationSearchResultModel {
         let url = try urlWithAPIKey(endpoint: .search).appending(queryItems: [URLQueryItem(name: "q", value: location)])
         
-        WeatherAPIDataSource.logger.debug("search url = \(url)")
+        logger.debug("search url = \(url)")
         //TODO: add search
         //return LocationSearchResultModel(userQueryString: "", locations: [])
         throw WeatherDataError.invalidData
     }
 
-    func fetchCurrentWeather(for location: String) async throws -> LocationModel {
-        let url = try urlWithAPIKey(endpoint: .current).appending(queryItems: [URLQueryItem(name: "q", value: location)])
+    func fetchCurrentWeather(for locationDescription: String) async throws -> WeatherModel {
+        let url = try urlWithAPIKey(endpoint: .current).appending(queryItems: [URLQueryItem(name: "q", value: locationDescription)])
 
-        WeatherAPIDataSource.logger.debug("current weather url = \(url)")
+        logger.debug("current weather url = \(url)")
 
         let (data, response) = try await URLSession.shared.data(from: url)
 
         guard let response = response as? HTTPURLResponse, response.statusCode == 200 else {
-            WeatherAPIDataSource.logger.warning("non-200 response: \(String(describing: response))")
+            logger.warning("non-200 response: \(response.description)")
             throw WeatherDataError.invalidResponse
         }
 
         do {
             let decoder = JSONDecoder()
             decoder.keyDecodingStrategy = .convertFromSnakeCase
-            let jsonModel = try decoder.decode(CurrentWetherJsonResponse.self, from: data)
-            return jsonModel.toLocationModel()
+            let jsonResponse = try decoder.decode(CurrentWetherJsonResponse.self, from: data)
+            logger.debug("current weather response: \(String(describing:jsonResponse))")
+            return jsonResponse.toWeatherModel()
         } catch {
-            WeatherAPIDataSource.logger.error("failed to decode json: \(error)")
+            logger.error("failed to decode json: \(error)")
             throw WeatherDataError.invalidData
         }
     }
@@ -94,7 +90,7 @@ extension WeatherAPIDataSource: WeatherDataProvider {
             let tempF: Double
             let feelslikeC: Double
             let feelslikeF: Double
-            let isDay: Bool
+            let isDay: Int
             let condition: Condition
             struct Condition: Codable {
                 let text: String
@@ -102,18 +98,15 @@ extension WeatherAPIDataSource: WeatherDataProvider {
             }
         }
         
-        func toLocationModel() -> LocationModel {
+        func toWeatherModel() -> WeatherModel {
             let condtion = WeatherConditionModel(text: current.condition.text,
                                                  iconUrl: "https:" + current.condition.icon)
             // TODO: pass bck both C and F temps.. let user decide in a setting switch.
             let currentWeather = WeatherModel(temp: current.tempF,
                                               feelsLike: current.feelslikeF,
-                                              isDay: current.isDay,
+                                              isDay: current.isDay == 1,
                                               condition: condtion)
-            let location = LocationModel(name: location.name,
-                                 currentWeather: currentWeather)
-            WeatherAPIDataSource.logger.debug("new LocationModel named : \(location.name) id: \(location.id)")
-            return location
+            return currentWeather
         }
     }
 }
