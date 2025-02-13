@@ -13,9 +13,16 @@ struct LocationSearchResultModel: Identifiable, Hashable {
 }
 
 struct LocationModel: Identifiable, Hashable {
-    let id = UUID()
+    let id: UUID
     var name: String
     var currentWeather: WeatherModel?
+    
+    init(name: String, id: UUID = UUID(), currentWeather: WeatherModel? = nil) {
+        self.name = name
+        self.id = id
+        self.currentWeather = currentWeather
+        logger.debug("new LocationModel (\(name)) : id \(id)")
+    }
     
     mutating func updateCurrentWeather(_ weather: WeatherModel) {
         self.currentWeather = weather
@@ -23,14 +30,29 @@ struct LocationModel: Identifiable, Hashable {
 }
 
 struct WeatherModel: Hashable {
-    var temp: Double
+    var temps: [WeatherTempModel]
+    var condition: WeatherConditionModel
+    
+    func temp(in unit: WeatherTempModel.TempUnit) -> Double {
+        temps.first(where: { $0.unit == unit })?.value ?? 0.0
+    }
+    
+    func feelsLike(in unit: WeatherTempModel.TempUnit) -> Double? {
+        temps.first(where: { $0.unit == unit })?.feelsLike
+    }
+}
+
+struct WeatherTempModel: Hashable {
+    enum TempUnit: String, CaseIterable {
+        case celsius
+        case fahrenheit
+    }
+    var unit: TempUnit
+    var value: Double
     var feelsLike: Double?
-    var isDay = true
-    var condition: WeatherConditionModel?
 }
 
 struct WeatherConditionModel: Hashable {
     var text: String
-    var iconUrl: String
+    var iconUrl: String?
 }
-

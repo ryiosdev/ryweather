@@ -6,69 +6,45 @@
 //
 
 import SwiftUI
-import os
 
 struct LocationList: View {
-    private let logger = Logger()
-
     @Binding var selectedLocationId: LocationModel.ID?
-    @Environment(WeatherViewModel.self) private var viewModel
-    @State private var searchText: String = ""
-    
+    var viewModel: WeatherViewModel
+
     var body: some View {
-        NavigationStack {
-            if (viewModel.locations.isEmpty) {
-                placeolderRow()
-            } else {
-                List(viewModel.locations, selection: $selectedLocationId) { location in
-                    NavigationLink(value: location.id) {
-                        locationRow(location)
-                    }
-                }
-                .navigationDestination(for: LocationModel.self) { _ in
-                    LocationWeatherView(locationId: $selectedLocationId)
-                }
-                .onAppear {
-                    logger.debug("LocationList appeared")
-                }
+        List(viewModel.locations, selection: $selectedLocationId) { location in
+            NavigationLink(value: location.id) {
+                locationRow(location)
             }
         }
 #if os(macOS)
         .navigationSplitViewColumnWidth(min: 180, ideal: 200)
 #endif
-        .toolbar {
-#if os(iOS)
-            ToolbarItem(placement: .navigationBarTrailing) {
-                EditButton()
-            }
-#endif
-        }
     }
     
     @ViewBuilder func locationRow(_ location: LocationModel) -> some View {
         HStack {
-            Text(location.name)
+            Text(viewModel.rowDisplayName(for: location))
             Spacer()
-            Text(viewModel.formatedTemp(location.currentWeather?.temp))
+            Text(viewModel.formatedTemp(for: location))
         }.task {
-            await viewModel.fetchCurrentWeatehr(for: location)
-        }
-    }
-    
-    @ViewBuilder func placeolderRow() -> some View {
-        HStack {
-            Button("Select a location") {
-                bringUpSearch()
+            if location.currentWeather == nil {
+                do {
+                    try await viewModel.fetchCurrentWeatehr(for: location)
+                } catch is CancellationError {
+                    logger.error("fetch task : cancelled!?")
+                } catch {
+                    logger.error("fetch task : This is fine! \(error)")
+                }
             }
         }
     }
-    func bringUpSearch() {
-        logger.debug("bring up search")
-
-    }
-
 }
 
-//#Preview {
-//    LocationList()
-//}
+#Preview {
+    @Previewable @State var selectedLocationId: LocationModel.ID? = UUID()
+    @Previewable let mockViewModel = WeatherViewModel(nil, [.init(name: "Sample Location",
+                                                                  currentWeather: .init(temps: [.init(unit: .fahrenheit, value: 90)],
+                                                                                        condition: .init(text: "cloudy")))])
+    LocationList(selectedLocationId: $selectedLocationId, viewModel: mockViewModel)
+}

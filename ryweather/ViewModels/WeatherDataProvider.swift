@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import os
 
 protocol WeatherDataProvider {
     func search(for location: String) async throws -> LocationSearchResultModel
@@ -20,19 +19,25 @@ enum WeatherDataError: Error {
 }
 
 struct WeatherAPIDataSource {
-    let logger = Logger()
     let apiKey: String
-
+    let scheme: String
+    let domain: String
+    let version: String
+    
     enum EndpointURIs: String {
         case current = "/current.json"
         case search = "/search.json"
     }
-        
-    private func urlWithAPIKey(_ scheme: String = "https://",
-                               _ domain: String = "api.weatherapi.com",
-                               _ version: String = "/V1",
-                               endpoint: EndpointURIs) throws -> URL {
-        
+
+    init(apiKey: String = UserDefaults.standard.string(forKey: "apikey") ?? "", scheme: String = "https://", domain: String = "api.weatherapi.com", version: String = "/V1") {
+        self.apiKey = apiKey
+        self.scheme = scheme
+        self.domain = domain
+        self.version = version
+        logger.debug("new WeatherAPIDataSource with apiKey: \(apiKey)")
+    }
+    
+    private func urlWithAPIKey(endpoint: EndpointURIs) throws -> URL {
         guard let url = URL(string: scheme + domain + version + endpoint.rawValue) else {
             throw WeatherDataError.invalidURL
         }
@@ -66,7 +71,6 @@ extension WeatherAPIDataSource: WeatherDataProvider {
             let decoder = JSONDecoder()
             decoder.keyDecodingStrategy = .convertFromSnakeCase
             let jsonResponse = try decoder.decode(CurrentWetherJsonResponse.self, from: data)
-            logger.debug("current weather response: \(String(describing:jsonResponse))")
             return jsonResponse.toWeatherModel()
         } catch {
             logger.error("failed to decode json: \(error)")
@@ -90,7 +94,6 @@ extension WeatherAPIDataSource: WeatherDataProvider {
             let tempF: Double
             let feelslikeC: Double
             let feelslikeF: Double
-            let isDay: Int
             let condition: Condition
             struct Condition: Codable {
                 let text: String
@@ -98,15 +101,21 @@ extension WeatherAPIDataSource: WeatherDataProvider {
             }
         }
         
+        // Transforms the json response model into a WeatherModel used by the app
         func toWeatherModel() -> WeatherModel {
-            let condtion = WeatherConditionModel(text: current.condition.text,
-                                                 iconUrl: "https:" + current.condition.icon)
-            // TODO: pass bck both C and F temps.. let user decide in a setting switch.
-            let currentWeather = WeatherModel(temp: current.tempF,
-                                              feelsLike: current.feelslikeF,
-                                              isDay: current.isDay == 1,
-                                              condition: condtion)
-            return currentWeather
+            let tempC = WeatherTempModel(unit: .celsius,
+                                         value: current.tempC,
+                                         feelsLike: current.feelslikeC)
+            
+            let tempF = WeatherTempModel(unit: .fahrenheit,
+                                         value: current.tempF,
+                                         feelsLike: current.feelslikeF)
+        
+            let condition = WeatherConditionModel(text: current.condition.text,
+                                                  iconUrl: "https:" + current.condition.icon)
+            let weather = WeatherModel(temps: [tempC, tempF],
+                                       condition: condition)
+            return weather
         }
     }
 }

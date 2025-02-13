@@ -6,80 +6,81 @@
 //
 
 import SwiftUI
-import os
 
 struct LocationWeatherView: View {
-    let logger = Logger()
-    @Binding var locationId: LocationModel.ID?
+    @Binding var selectedLocationId: LocationModel.ID?
     @Environment(WeatherViewModel.self) private var viewModel
-    @ScaledMetric var scale: CGFloat = 1.0
-    
+
     private var location: Binding<LocationModel> {
         Binding {
-            guard let id = locationId, let location = viewModel.location(with: id) else {
+            guard let id = selectedLocationId, let loc = viewModel.location(with: id) else {
                 return LocationModel(name: "")
             }
-            return location
-        } set: { newLocation in
-            viewModel.update(newLocation)
+            return loc
+        } set: { updatedLocation in
+            viewModel.update(updatedLocation)
         }
     }
     
     var body: some View {
-        if !viewModel.contains(locationId) {
-            Text("Select a Location")
-                .foregroundStyle(.secondary)
-        } else {
-            //TODO: move this to a view builder..
-            VStack(spacing: 10) {
-                Text(location.wrappedValue.name)
-                    .font(.title)
-                HStack {
-                    AsyncImage(url: URL(string: location.wrappedValue.currentWeather?.condition?.iconUrl ?? "")) { phase in
+        ZStack {
+            if viewModel.contains(selectedLocationId) {
+                CurrentWeatherView(location: location)
+                    .navigationTitle(location.wrappedValue.name)
+            } else {
+                Text("Select a Location")
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
+struct CurrentWeatherView: View {
+    @Environment(WeatherViewModel.self) private var viewModel
+    @ScaledMetric var scale: CGFloat = 1.0
+    @Binding var location: LocationModel
+
+    var body: some View {
+        VStack(spacing: 10) {
+            Text(location.name)
+                .font(.title)
+            HStack {
+                // Don't show the `AsysncImage` if `currentWeather` (while loading) or the `iconUrl` is `nil`
+                // when `location` get trigger for an update, it will
+                if let iconUrl = location.currentWeather?.condition.iconUrl {
+                    AsyncImage(url: URL(string: iconUrl)) { phase in
                         if let image = phase.image {
                             image
                                 .resizable()
                                 .scaledToFit()
+                                .onAppear {
+                                    logger.debug("AsysncImage loaded")
+                                }
                         } else if phase.error != nil {
                             Image(systemName: "bolt")
+                                .onAppear {
+                                    logger.debug("AsysncImage error: \(String(describing: phase.error!))")
+                                }
                         } else {
                             EmptyView()
+                                .onAppear {
+                                    logger.debug("AsysncImage not loaded yet")
+                                }
                         }
                     }
-                    .frame(width: scaledImageDimention(), height: scaledImageDimention())
-                    
-                    Text(formatedTemp(location.wrappedValue.currentWeather?.temp))
-                        .font(.largeTitle)
+                    .frame(width: 64 * scale, height: 64 * scale)
                 }
-                VStack {
-                    Text(location.wrappedValue.currentWeather?.condition?.text ?? "placeholder-condition")
-                    Text("Feels Like: " + formatedTemp(location.wrappedValue.currentWeather?.feelsLike))
-                }
-                .foregroundStyle(.secondary)
-                .redacted(reason: location.wrappedValue.currentWeather == nil ? .placeholder : [])
+                
+                Text(viewModel.formatedTemp(for: location))
+                    .font(.largeTitle)
             }
+            VStack {
+                Text(viewModel.weatherConditionText(for: location))
+                Text("Feels Like: " + viewModel.formatedFeelsLike(for: location))
+            }
+            .foregroundStyle(.secondary)
+            .redacted(reason: viewModel.shouldShowRedactedText(for: location) ? .placeholder : [])
         }
-    }
-    
-    private func scaledImageDimention() -> CGFloat {
-        location.wrappedValue.currentWeather != nil ? 64 * scale : 0
-    }
-    
-    private func formatedTemp(_ temp: Double?) -> String {
-        if let temp = temp {
-            // TODO: C/F support...
-            return String(format: "%.0fºF", temp)
-        }
-        return "--ºF"
     }
 }
 
-#Preview {
-    //TODO: break this down into a viewBuilder for the preview
-    @Previewable @State var locId: LocationModel.ID?
-//    let condition = WeatherConditionModel(text: "Overcast", iconUrl: "https://cdn.weatherapi.com/weather/64x64/day/122.png")
-//    let weather = WeatherModel(temp: 90,  feelsLike: 100, condition: condition)
-//    let location = LocationModel(name: "San Antonio", currentWeather: weather)
-//    
-    LocationWeatherView(locationId: $locId)
-}
