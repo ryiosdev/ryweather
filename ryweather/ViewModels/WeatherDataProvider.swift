@@ -8,7 +8,7 @@
 import Foundation
 
 protocol WeatherDataProvider {
-    func search(for location: String) async throws -> LocationSearchResultModel
+    func search(for searchText: String) async throws -> LocationSearchResultModel
     func fetchCurrentWeather(for locationDescription: String) async throws -> WeatherModel
 }
 

@@ -31,10 +31,8 @@ struct SampleWeatherViewModel: PreviewModifier {
     typealias Context = WeatherViewModel
     
     struct SampleWeatherDataProvider: WeatherDataProvider {
-        func search(for location: String) async throws -> LocationSearchResultModel {
-            LocationSearchResultModel(searchText: "", locations: [
-                LocationModel("San Jose", id: )
-            ])
+        func search(for searchText: String) async throws -> LocationSearchResultModel {
+            LocationSearchResultModel(searchText: searchText, locations: [LocationModel("San Jose")])
         }
         
         func fetchCurrentWeather(for locationDescription: String) async throws -> WeatherModel {

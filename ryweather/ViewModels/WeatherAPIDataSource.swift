@@ -38,18 +38,54 @@ struct WeatherAPIDataSource {
 }
 
 extension WeatherAPIDataSource: WeatherDataProvider {
-    func search(for location: String) async throws -> LocationSearchResultModel {
-        let url = try urlWithAPIKey(endpoint: .search).appending(queryItems: [URLQueryItem(name: "q", value: location)])
-        
+    func search(for searchText: String) async throws -> LocationSearchResultModel {
+        let url = try urlWithAPIKey(endpoint: .search).appending(queryItems: [URLQueryItem(name: "q", value: searchText)])
         logger.debug("search url = \(url)")
-        //TODO: add search
-        //return LocationSearchResultModel(userQueryString: "", locations: [])
-        throw WeatherDataError.invalidData
+        let (data, response) = try await URLSession.shared.data(from: url)
+
+        guard let response = response as? HTTPURLResponse, response.statusCode == 200 else {
+            logger.warning("non-200 response: \(response.description)")
+            throw WeatherDataError.invalidResponse
+        }
+
+        do {
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+            let jsonLocationsArray = try decoder.decode([LocationSearchJsonResponse.Location].self, from: data)
+            return LocationSearchJsonResponse.toSearchResultModel(jsonLocationsArray, searchText: searchText)
+        } catch {
+            logger.error("failed to decode json: \(error)")
+            throw WeatherDataError.invalidData
+        }
     }
+    
+    //https://www.weatherapi.com/docs/#apis-search
+    private struct LocationSearchJsonResponse {
+        struct Location: Codable {
+            let id: Int
+            let name: String
+            let region: String
+            let country: String
+            let url: String
+        }
+        // Transforms the json response model into a WeatherModel used by the app
+        static func toSearchResultModel(_ array: [Location], searchText: String) -> LocationSearchResultModel {
+            let locationModels = array.map { json in
+                LocationModel(id: json.id,
+                              name: json.name,
+                              region: json.region,
+                              country: json.country,
+                              url: json.url)
+            }
+            let searchResultModel = LocationSearchResultModel(searchText: searchText, locations: locationModels)
+            return searchResultModel
+        }
+    }
+    
 
     func fetchCurrentWeather(for locationDescription: String) async throws -> WeatherModel {
         let url = try urlWithAPIKey(endpoint: .current).appending(queryItems: [URLQueryItem(name: "q", value: locationDescription)])
-        logger.debug("caling: \(url)")
+        logger.debug("current weather url: \(url)")
         let (data, response) = try await URLSession.shared.data(from: url)
 
         guard let response = response as? HTTPURLResponse, response.statusCode == 200 else {

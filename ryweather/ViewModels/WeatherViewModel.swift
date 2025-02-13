@@ -20,15 +20,7 @@ class WeatherViewModel {
     var selectedTempUnit: WeatherTempModel.TempUnit
     var searchText: String = ""
     
-    var filteredLocations: [LocationModel] {
-        guard !searchText.isEmpty else {
-            return []
-        }
-        return locations.filter { location in
-            location.name.lowercased().contains(searchText.lowercased())
-        }
-    }
-
+    var searchResult = [LocationModel]()
         
     @ObservationIgnored private var weatherDataProvider: WeatherDataProvider?
     
@@ -101,8 +93,10 @@ extension WeatherViewModel {
         }
     }
     
-    func search(for description: String) async throws {
-        logger.debug(">>> searching for \(description)...")
-        try await weatherDataProvider?.search(for: description)
+    func searchLocationsUsingSearchText() async throws {
+        let result = try await weatherDataProvider?.search(for: searchText)
+        
+        //TODO: do we need the searchText String in the response model, it should match `self.searchText`
+        searchResult = result?.locations ?? []
     }
 }

@@ -12,7 +12,7 @@ struct LocationList: View {
     @Binding var searchText: String
     
     @Environment(WeatherViewModel.self) private var viewModel
-    
+
     var body: some View {
         NavigationStack {
             List(viewModel.locations, selection: $selectedLocationId) { location in
@@ -21,16 +21,16 @@ struct LocationList: View {
                 }
             }
             .searchable(text: $searchText) {
-//                ForEach(viewModel.filteredLocations) { suggestion in
-//                    Label(suggestion.name, systemImage: "bookmark")
-//                        .searchCompletion(suggestion.name)
-//                }
+                ForEach(viewModel.searchResult) { suggestion in
+                    searchResultRow(suggestion)
+                        .searchCompletion(suggestion.name)
+                }
             }
         }
         .onSubmit(of: .search) {
             logger.debug(">>> searchText: \(searchText)")
             Task {
-                try? await viewModel.search(for: searchText)
+                try? await viewModel.searchLocationsUsingSearchText()
             }
         }
 
@@ -56,6 +56,16 @@ struct LocationList: View {
                     logger.error("fetch task : This is fine! \(error)")
                 }
             }
+        }
+    }
+    
+    @ViewBuilder func searchResultRow(_ location: LocationModel) -> some View {
+        VStack(alignment: .leading) {
+            Text(location.name + (location.region == nil ? "" : ", " + location.region!))
+            Text(location.country ?? "")
+                .font(.caption)
+        }.onTapGesture {
+            logger.debug(">>> search result tapped: \(String(describing: location))")
         }
     }
 }
