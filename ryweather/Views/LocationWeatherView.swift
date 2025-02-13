@@ -45,11 +45,11 @@ struct CurrentWeatherView: View {
             conditionImage()
             locationName()
             Group {
-                Text(location.currentWeather?.condition.text ?? "searching...")
+                Text(location.currentWeather?.condition.text ?? "Searching...") // the "Searching..." is a placeholder string for redaction
                 Text("Feels Like: " + String(format: "%.0fº", location.currentWeather?.feelsLike(in: viewModel.selectedTempUnit) ?? "--"))
             }
             .foregroundStyle(.secondary)
-            .redacted(reason: viewModel.shouldShowRedactedText(for: location) ? .placeholder : [])
+            .redacted(reason: location.currentWeather == nil ? .placeholder : [])
         }
     }
     

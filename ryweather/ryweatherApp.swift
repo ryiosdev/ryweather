@@ -8,22 +8,20 @@
 import SwiftUI
 import OSLog
 
-let logger = Logger(subsystem: "com.ryweather.ryweather", category: "general    ")
+let logger = Logger(subsystem: "com.ryweather.ryweather", category: "general")
 
 @main
 struct ryweatherApp: App {
     @State private var viewModel = WeatherViewModel()
     @State private var selectedLocationId: LocationModel.ID?
-
     var body: some Scene {
         WindowGroup {
             NavigationSplitView {
-                LocationList(selectedLocationId: $selectedLocationId)
+                LocationList(selectedLocationId: $selectedLocationId, searchText: $viewModel.searchText)
             } detail: {
                 LocationWeatherView(selectedLocationId: $selectedLocationId)
             }
             .environment(viewModel)
-
         }
     }
 }
@@ -34,8 +32,8 @@ struct SampleWeatherViewModel: PreviewModifier {
     
     struct SampleWeatherDataProvider: WeatherDataProvider {
         func search(for location: String) async throws -> LocationSearchResultModel {
-            LocationSearchResultModel(userQueryString: location, locations: [
-                // TODO: fill this in once search works
+            LocationSearchResultModel(searchText: "", locations: [
+                LocationModel("San Jose", id: )
             ])
         }
         

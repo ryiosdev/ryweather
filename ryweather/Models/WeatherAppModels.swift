@@ -6,9 +6,8 @@
 //
 import Foundation
 
-struct LocationSearchResultModel: Identifiable, Hashable {
-    let id = Int()
-    var userQueryString: String
+struct LocationSearchResultModel {
+    var searchText: String
     var locations: [LocationModel]
 }
 
@@ -28,8 +27,8 @@ struct WeatherModel: Hashable {
     var temps: [WeatherTempModel]
     var condition: WeatherConditionModel
     
-    func temp(in unit: WeatherTempModel.TempUnit) -> Double {
-        temps.first(where: { $0.unit == unit })?.value ?? 0.0
+    func temp(in unit: WeatherTempModel.TempUnit) -> Double? {
+        temps.first(where: { $0.unit == unit })?.value
     }
     
     func feelsLike(in unit: WeatherTempModel.TempUnit) -> Double? {

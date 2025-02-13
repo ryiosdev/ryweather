@@ -18,6 +18,18 @@ class WeatherViewModel {
                                                     LocationModel("Tokyo", id: 4)]
     var locations: [LocationModel]
     var selectedTempUnit: WeatherTempModel.TempUnit
+    var searchText: String = ""
+    
+    var filteredLocations: [LocationModel] {
+        guard !searchText.isEmpty else {
+            return []
+        }
+        return locations.filter { location in
+            location.name.lowercased().contains(searchText.lowercased())
+        }
+    }
+
+        
     @ObservationIgnored private var weatherDataProvider: WeatherDataProvider?
     
     init(_ locs: [LocationModel] = WeatherViewModel.defaultLocations,
@@ -70,23 +82,8 @@ class WeatherViewModel {
 
 // Sharde helper model transformation functions
 extension WeatherViewModel {
-    func formatedTemp(for location: LocationModel) -> String {
-        if let temp = location.currentWeather?.temp(in: self.selectedTempUnit) {
-            return String(format: "%.0fº", temp) //+ formattedTempUnit()
-        }
-        return "--"
-    }
-
-    func weatherConditionText(for location: LocationModel) -> String {
-        location.currentWeather?.condition.text ?? "searching..."
-    }
-    
-    func shouldShowRedactedText(for location: LocationModel) -> Bool {
-        location.currentWeather == nil
-    }
-    
-    func formattedTempUnit() -> String {
-        switch(selectedTempUnit) {
+    func tempUnitString(_ unit: WeatherTempModel.TempUnit) -> String {
+        switch(unit) {
         case .celsius:
             return "C"
         case .fahrenheit:
@@ -102,5 +99,10 @@ extension WeatherViewModel {
                 locations[index] = LocationModel(location.name, id: location.id, currentWeather: weatherModel)
             }
         }
+    }
+    
+    func search(for description: String) async throws {
+        logger.debug(">>> searching for \(description)...")
+        try await weatherDataProvider?.search(for: description)
     }
 }
