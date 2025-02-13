@@ -14,7 +14,7 @@ struct LocationWeatherView: View {
     private var location: Binding<LocationModel> {
         Binding {
             guard let id = selectedLocationId, let loc = viewModel.location(with: id) else {
-                return LocationModel(name: "")
+                return LocationModel("")
             }
             return loc
         } set: { updatedLocation in
@@ -55,16 +55,9 @@ struct CurrentWeatherView: View {
     
     @ViewBuilder
     func tempView() -> some View {
-        //HStack(alignment: .lastTextBaseline, spacing: 2) {
-        //TODO: this looks cool, but does it work with VoiceOver?
-        ZStack(alignment: .trailingLastTextBaseline) {
+        Group {
             if let temp = location.currentWeather?.temp(in: viewModel.selectedTempUnit) {
-                Text(String(format: "%.0f", temp))
-                Image(systemName: systemImageName(for: viewModel.selectedTempUnit))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .padding()
-                    .offset(x: 30)
+                Text(String(format: " %.0fº", temp)) //The extra white space is to help center the digits
             } else {
                 Text("--")
             }
@@ -114,3 +107,7 @@ struct CurrentWeatherView: View {
     }
 }
 
+#Preview(traits: .sampleWeatherViewModel) {
+    @Previewable @State var id: LocationModel.ID? = 0
+    LocationWeatherView(selectedLocationId: $id)
+}

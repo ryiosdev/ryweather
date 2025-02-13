@@ -7,15 +7,21 @@
 import Foundation
 
 struct LocationSearchResultModel: Identifiable, Hashable {
-    let id = UUID()
+    let id = Int()
     var userQueryString: String
     var locations: [LocationModel]
 }
 
 struct LocationModel: Identifiable, Hashable {
-    let id = UUID()
+    let id: Int
     var name: String
     var currentWeather: WeatherModel?
+    
+    init(_ name: String, id: Int = 0, currentWeather: WeatherModel? = nil) {
+        self.name = name
+        self.id = id
+        self.currentWeather = currentWeather
+    }
 }
 
 struct WeatherModel: Hashable {

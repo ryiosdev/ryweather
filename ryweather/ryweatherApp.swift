@@ -18,7 +18,7 @@ struct ryweatherApp: App {
     var body: some Scene {
         WindowGroup {
             NavigationSplitView {
-                LocationList(selectedLocationId: $selectedLocationId, viewModel: viewModel)
+                LocationList(selectedLocationId: $selectedLocationId)
             } detail: {
                 LocationWeatherView(selectedLocationId: $selectedLocationId)
             }
@@ -26,4 +26,44 @@ struct ryweatherApp: App {
 
         }
     }
+}
+
+// global preview helper to set mock WeatherViewModel
+struct SampleWeatherViewModel: PreviewModifier {
+    typealias Context = WeatherViewModel
+    
+    struct SampleWeatherDataProvider: WeatherDataProvider {
+        func search(for location: String) async throws -> LocationSearchResultModel {
+            LocationSearchResultModel(userQueryString: location, locations: [
+                // TODO: fill this in once search works
+            ])
+        }
+        
+        func fetchCurrentWeather(for locationDescription: String) async throws -> WeatherModel {
+            return WeatherModel(temps: [.init(unit: .fahrenheit, value: 90), .init(unit: .celsius, value: 32)],
+                         condition: .init(text: "Partly Cloudy",
+                                          iconUrl: "https://cdn.weatherapi.com/weather/64x64/night/116.png"))
+        }
+    }
+    
+    static func makeSharedContext() async throws -> Context {
+        
+        let viewModel = WeatherViewModel(WeatherViewModel.defaultLocations, .fahrenheit, SampleWeatherDataProvider())
+        for location in viewModel.locations {
+            do {
+                try await viewModel.fetchCurrentWeather(for: location)
+            } catch {
+                print("preview caught error while calling fetchCurrentWeather")
+            }
+        }
+        return viewModel
+    }
+    
+    func body(content: Content, context: Context) -> some View {
+        return content.environment(context)
+    }
+}
+
+extension PreviewTrait where T == Preview.ViewTraits {
+    @MainActor static var sampleWeatherViewModel: Self = .modifier(SampleWeatherViewModel())
 }

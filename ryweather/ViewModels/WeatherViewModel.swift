@@ -11,16 +11,21 @@ import SwiftData
 
 @Observable @MainActor
 class WeatherViewModel {
-    static let defaultLocations: [LocationModel] = [LocationModel(name: "San Antonio"),
-                                                    LocationModel(name: "New York"),
-                                                    LocationModel(name: "London")]
-    var selectedTempUnit = WeatherTempModel.TempUnit.fahrenheit
+    static let defaultLocations: [LocationModel] = [LocationModel("San Antonio", id: 0),
+                                                    LocationModel("New York", id: 1),
+                                                    LocationModel("London", id: 2),
+                                                    LocationModel("Anchorage", id: 3),
+                                                    LocationModel("Tokyo", id: 4)]
     var locations: [LocationModel]
+    var selectedTempUnit: WeatherTempModel.TempUnit
     @ObservationIgnored private var weatherDataProvider: WeatherDataProvider?
     
-    init(_ provider: WeatherDataProvider? = WeatherAPIDataSource(), _ locs: [LocationModel] = WeatherViewModel.defaultLocations) {
-        self.weatherDataProvider = provider
+    init(_ locs: [LocationModel] = WeatherViewModel.defaultLocations,
+         _ temp: WeatherTempModel.TempUnit = .fahrenheit,
+         _ provider: WeatherDataProvider? = WeatherAPIDataSource(apiKey: UserDefaults.standard.string(forKey: "apikey") ?? "")) {
         self.locations = locs
+        self.selectedTempUnit = temp
+        self.weatherDataProvider = provider
     }
     
     //CRUD operations for locations array.
@@ -33,7 +38,7 @@ class WeatherViewModel {
         return locations.firstIndex(where: { $0.id == id })
     }
     
-    func location(with id: UUID?) -> LocationModel? {
+    func location(with id: Int?) -> LocationModel? {
         guard let id else { return nil }
         return locations.first(where: { $0.id == id })
     }
@@ -91,10 +96,10 @@ extension WeatherViewModel {
         }
     }
     
-    func fetchCurrentWeatehr(for location: LocationModel) async throws {
+    func fetchCurrentWeather(for location: LocationModel) async throws {
         if let weatherModel = try await weatherDataProvider?.fetchCurrentWeather(for: location.name) {
             if let index = locationIndex(location.id) {
-                locations[index] = LocationModel(name: location.name, currentWeather: weatherModel)
+                locations[index] = LocationModel(location.name, id: location.id, currentWeather: weatherModel)
             }
         }
     }

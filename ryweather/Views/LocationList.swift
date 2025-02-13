@@ -9,7 +9,8 @@ import SwiftUI
 
 struct LocationList: View {
     @Binding var selectedLocationId: LocationModel.ID?
-    var viewModel: WeatherViewModel
+//    var viewModel: WeatherViewModel
+    @Environment(WeatherViewModel.self) private var viewModel
 
     var body: some View {
         List(viewModel.locations, selection: $selectedLocationId) { location in
@@ -30,7 +31,7 @@ struct LocationList: View {
         }.task {
             if location.currentWeather == nil {
                 do {
-                    try await viewModel.fetchCurrentWeatehr(for: location)
+                    try await viewModel.fetchCurrentWeather(for: location)
                 } catch is CancellationError {
                     logger.error("fetch task : cancelled!?")
                 } catch {
@@ -39,4 +40,9 @@ struct LocationList: View {
             }
         }
     }
+}
+
+#Preview(traits: .sampleWeatherViewModel) {
+    @Previewable @State var id: LocationModel.ID? = 0
+    LocationList(selectedLocationId: $id)
 }
