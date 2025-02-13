@@ -57,9 +57,7 @@ extension WeatherAPIDataSource: WeatherDataProvider {
 
     func fetchCurrentWeather(for locationDescription: String) async throws -> WeatherModel {
         let url = try urlWithAPIKey(endpoint: .current).appending(queryItems: [URLQueryItem(name: "q", value: locationDescription)])
-
-        logger.debug("current weather url = \(url)")
-
+        logger.debug("caling: \(url)")
         let (data, response) = try await URLSession.shared.data(from: url)
 
         guard let response = response as? HTTPURLResponse, response.statusCode == 200 else {

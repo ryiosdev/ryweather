@@ -26,7 +26,6 @@ struct LocationWeatherView: View {
         ZStack {
             if viewModel.contains(selectedLocationId) {
                 CurrentWeatherView(location: location)
-                    .navigationTitle(location.wrappedValue.name)
             } else {
                 Text("Select a Location")
                     .foregroundStyle(.secondary)
@@ -41,45 +40,76 @@ struct CurrentWeatherView: View {
     @Binding var location: LocationModel
 
     var body: some View {
-        VStack(spacing: 10) {
-            Text(location.name)
-                .font(.title)
-            HStack {
-                // Don't show the `AsysncImage` if `currentWeather` (while loading) or the `iconUrl` is `nil`
-                // when `location` get trigger for an update, it will
-                if let iconUrl = location.currentWeather?.condition.iconUrl {
-                    AsyncImage(url: URL(string: iconUrl)) { phase in
-                        if let image = phase.image {
-                            image
-                                .resizable()
-                                .scaledToFit()
-                                .onAppear {
-                                    logger.debug("AsysncImage loaded")
-                                }
-                        } else if phase.error != nil {
-                            Image(systemName: "bolt")
-                                .onAppear {
-                                    logger.debug("AsysncImage error: \(String(describing: phase.error!))")
-                                }
-                        } else {
-                            EmptyView()
-                                .onAppear {
-                                    logger.debug("AsysncImage not loaded yet")
-                                }
-                        }
-                    }
-                    .frame(width: 64 * scale, height: 64 * scale)
-                }
-                
-                Text(viewModel.formatedTemp(for: location))
-                    .font(.largeTitle)
-            }
-            VStack {
-                Text(viewModel.weatherConditionText(for: location))
-                Text("Feels Like: " + viewModel.formatedFeelsLike(for: location))
+        VStack(spacing: 5) {
+            tempView()
+            conditionImage()
+            locationName()
+            Group {
+                Text(location.currentWeather?.condition.text ?? "searching...")
+                Text("Feels Like: " + String(format: "%.0fº", location.currentWeather?.feelsLike(in: viewModel.selectedTempUnit) ?? "--"))
             }
             .foregroundStyle(.secondary)
             .redacted(reason: viewModel.shouldShowRedactedText(for: location) ? .placeholder : [])
+        }
+    }
+    
+    @ViewBuilder
+    func tempView() -> some View {
+        //HStack(alignment: .lastTextBaseline, spacing: 2) {
+        //TODO: this looks cool, but does it work with VoiceOver?
+        ZStack(alignment: .trailingLastTextBaseline) {
+            if let temp = location.currentWeather?.temp(in: viewModel.selectedTempUnit) {
+                Text(String(format: "%.0f", temp))
+                Image(systemName: systemImageName(for: viewModel.selectedTempUnit))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .padding()
+                    .offset(x: 30)
+            } else {
+                Text("--")
+            }
+        }
+        .font(.system(size: 64 * scale, weight: .light, design: .rounded))
+    }
+    
+    @ViewBuilder
+    func conditionImage() -> some View {
+        // Don't show the `AsysncImage` if `currentWeather` (while loading) or the `iconUrl` is `nil`
+        if let iconUrl = location.currentWeather?.condition.iconUrl {
+            AsyncImage(url: URL(string: iconUrl)) { phase in
+                if let image = phase.image {
+                    image
+                        .resizable()
+                        .scaledToFit()
+                } else if phase.error != nil {
+                    EmptyView()
+                        .onAppear {
+                            logger.debug("AsysncImage error: \(String(describing: phase.error!))")
+                        }
+                } else {
+                    EmptyView()
+                        .onAppear {
+                            logger.debug("AsysncImage not loaded yet.")
+                        }
+                }
+            }
+            .frame(width: 100 * scale, height: 100 * scale)
+        } else {
+            EmptyView()
+        }
+    }
+    
+    @ViewBuilder func locationName() -> some View {
+        Text(location.name)
+            .font(.title)
+    }
+    
+    func systemImageName(for unit: WeatherTempModel.TempUnit) -> String {
+        switch (unit) {
+        case .celsius:
+            "degreesign.celsius"
+        case .fahrenheit:
+            "degreesign.fahrenheit"
         }
     }
 }
