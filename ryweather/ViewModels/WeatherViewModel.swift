@@ -87,10 +87,30 @@ extension WeatherViewModel {
         
     }
     
+    func onSearchTextChanged(from oldValue: String, to newValue: String) {
+        // TODO: also add a debounce time buffer
+        // TODO: also check the Task/threading, may need to queue these up
+        if searchText.count > 2 && oldValue != newValue {
+            logger.debug("? : \(self.searchText)")
+            Task {
+                do {
+                    try await searchForLocationsUsingSearchText()
+                } catch {
+                    logger.error("failed to get search result: \(error)")
+                }
+            }
+        }
+    }
+    
     func searchForLocationsUsingSearchText() async throws {
         let result = try await weatherDataProvider?.search(for: searchText)
         
         //TODO: do we need the searchText String in the response model, it should match `self.searchText`
         searchResults = result?.locations ?? []
+    }
+    
+    func onSubmitOfSearch() {
+        selectedSearchLocation = searchResults.first
+        logger.debug(">>> onSubmit of search: \(String(describing: self.selectedSearchLocation))")
     }
 }

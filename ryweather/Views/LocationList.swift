@@ -12,6 +12,8 @@ struct LocationList: View {
     @Binding var searchText: String
     
     @Environment(WeatherViewModel.self) private var viewModel
+    
+    //TODO: isSearching needs bo be on the wrapper view that contains the 'List' to work...
     @Environment(\.isSearching) var isSearching
 
     var body: some View {
@@ -28,25 +30,11 @@ struct LocationList: View {
                 }
             })
         }
-        .onChange(of: searchText, { oldValue, newValue in
-            // TODO: move this logic to ViewModel
-            // also add a debounce time buffer
-            // also check the Task/threading, may need to queue these up
-            if searchText.count > 2 && oldValue != newValue {
-                logger.debug("? : \(searchText)")
-                Task {
-                    do {
-                        try await viewModel.searchForLocationsUsingSearchText()
-                    } catch {
-                        logger.error("failed to get search result: \(error)")
-                    }
-                }
-            }
-        })
+        .onChange(of: searchText) { oldValue, newValue in
+            viewModel.onSearchTextChanged(from: oldValue, to: newValue)
+        }
         .onSubmit(of: .search) {
-            selectedLocationId = nil
-            viewModel.selectedSearchLocation = viewModel.searchResults.first
-            logger.debug(">>> onSubmit of search: \(String(describing: viewModel.selectedSearchLocation))")
+            viewModel.onSubmitOfSearch()
         }
 #if os(macOS)
         .navigationSplitViewColumnWidth(min: 180, ideal: 200)
@@ -78,10 +66,10 @@ struct LocationList: View {
             Text(location.name + (location.region == nil ? "" : ", " + location.region!))
             Text(location.country ?? "")
                 .font(.caption)
-        }.onTapGesture {
-            selectedLocationId = nil
-            viewModel.selectedSearchLocation = location
-            logger.debug(">>> search result tapped: \(String(describing: viewModel.selectedSearchLocation))")
+//        }.onTapGesture {
+//            selectedLocationId = nil
+//            viewModel.selectedSearchLocation = location
+//            logger.debug(">>> search result tapped: \(String(describing: viewModel.selectedSearchLocation))")
         }
     }
 }
