@@ -13,10 +13,13 @@ struct LocationWeatherView: View {
 
     private var location: Binding<LocationModel> {
         Binding {
-            guard let id = selectedLocationId, let loc = viewModel.location(with: id) else {
+            if let searchedLocation  = viewModel.selectedSearchLocation {
+                return searchedLocation
+            }
+            guard let id = selectedLocationId, let savedLocation = viewModel.location(with: id) else {
                 return LocationModel("")
             }
-            return loc
+            return savedLocation
         } set: { updatedLocation in
             viewModel.update(updatedLocation)
         }

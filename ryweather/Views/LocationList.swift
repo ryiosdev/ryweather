@@ -12,6 +12,7 @@ struct LocationList: View {
     @Binding var searchText: String
     
     @Environment(WeatherViewModel.self) private var viewModel
+    @Environment(\.isSearching) var isSearching
 
     var body: some View {
         NavigationStack {
@@ -20,20 +21,33 @@ struct LocationList: View {
                     locationRow(location)
                 }
             }
-            .searchable(text: $searchText) {
-                ForEach(viewModel.searchResult) { suggestion in
+            .searchable(text: $searchText, suggestions: {
+                ForEach(viewModel.searchResults) { suggestion in
                     searchResultRow(suggestion)
-                        .searchCompletion(suggestion.name)
+                        .searchCompletion("")
+                }
+            })
+        }
+        .onChange(of: searchText, { oldValue, newValue in
+            // TODO: move this logic to ViewModel
+            // also add a debounce time buffer
+            // also check the Task/threading, may need to queue these up
+            if searchText.count > 2 && oldValue != newValue {
+                logger.debug("? : \(searchText)")
+                Task {
+                    do {
+                        try await viewModel.searchForLocationsUsingSearchText()
+                    } catch {
+                        logger.error("failed to get search result: \(error)")
+                    }
                 }
             }
-        }
+        })
         .onSubmit(of: .search) {
-            logger.debug(">>> searchText: \(searchText)")
-            Task {
-                try? await viewModel.searchLocationsUsingSearchText()
-            }
+            selectedLocationId = nil
+            viewModel.selectedSearchLocation = viewModel.searchResults.first
+            logger.debug(">>> onSubmit of search: \(String(describing: viewModel.selectedSearchLocation))")
         }
-
 #if os(macOS)
         .navigationSplitViewColumnWidth(min: 180, ideal: 200)
 #endif
@@ -65,7 +79,9 @@ struct LocationList: View {
             Text(location.country ?? "")
                 .font(.caption)
         }.onTapGesture {
-            logger.debug(">>> search result tapped: \(String(describing: location))")
+            selectedLocationId = nil
+            viewModel.selectedSearchLocation = location
+            logger.debug(">>> search result tapped: \(String(describing: viewModel.selectedSearchLocation))")
         }
     }
 }

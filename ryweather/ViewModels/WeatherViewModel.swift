@@ -18,10 +18,11 @@ class WeatherViewModel {
                                                     LocationModel("Tokyo", id: 4)]
     var locations: [LocationModel]
     var selectedTempUnit: WeatherTempModel.TempUnit
-    var searchText: String = ""
     
-    var searchResult = [LocationModel]()
-        
+    var searchText: String = ""
+    var searchResults = [LocationModel]()
+    var selectedSearchLocation: LocationModel?
+    
     @ObservationIgnored private var weatherDataProvider: WeatherDataProvider?
     
     init(_ locs: [LocationModel] = WeatherViewModel.defaultLocations,
@@ -74,17 +75,6 @@ class WeatherViewModel {
 
 // Sharde helper model transformation functions
 extension WeatherViewModel {
-    func tempUnitString(_ unit: WeatherTempModel.TempUnit) -> String {
-        switch(unit) {
-        case .celsius:
-            return "C"
-        case .fahrenheit:
-            return "F"
-        @unknown default: // Future Kelvin support? 
-            return ""
-        }
-    }
-    
     func fetchCurrentWeather(for location: LocationModel) async throws {
         if let weatherModel = try await weatherDataProvider?.fetchCurrentWeather(for: location.name) {
             if let index = locationIndex(location.id) {
@@ -93,10 +83,14 @@ extension WeatherViewModel {
         }
     }
     
-    func searchLocationsUsingSearchText() async throws {
+    func fetchForecastWeather(for location: LocationModel) async throws {
+        
+    }
+    
+    func searchForLocationsUsingSearchText() async throws {
         let result = try await weatherDataProvider?.search(for: searchText)
         
         //TODO: do we need the searchText String in the response model, it should match `self.searchText`
-        searchResult = result?.locations ?? []
+        searchResults = result?.locations ?? []
     }
 }
