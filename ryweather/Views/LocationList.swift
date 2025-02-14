@@ -26,7 +26,7 @@ struct LocationList: View {
             .searchable(text: $searchText, suggestions: {
                 ForEach(viewModel.searchResults) { suggestion in
                     searchResultRow(suggestion)
-                        .searchCompletion("")
+                        .searchCompletion(suggestion.currentUrl ?? "")
                 }
             })
         }
@@ -34,6 +34,9 @@ struct LocationList: View {
             viewModel.onSearchTextChanged(from: oldValue, to: newValue)
         }
         .onSubmit(of: .search) {
+            //deselect anytyhing previously saved and shown.
+            selectedLocationId = nil
+            // TODO: programatically push to detail view
             viewModel.onSubmitOfSearch()
         }
 #if os(macOS)
@@ -66,10 +69,7 @@ struct LocationList: View {
             Text(location.name + (location.region == nil ? "" : ", " + location.region!))
             Text(location.country ?? "")
                 .font(.caption)
-//        }.onTapGesture {
-//            selectedLocationId = nil
-//            viewModel.selectedSearchLocation = location
-//            logger.debug(">>> search result tapped: \(String(describing: viewModel.selectedSearchLocation))")
+
         }
     }
 }

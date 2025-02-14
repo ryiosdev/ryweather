@@ -13,13 +13,16 @@ struct LocationWeatherView: View {
 
     private var location: Binding<LocationModel> {
         Binding {
-            if let searchedLocation  = viewModel.selectedSearchLocation {
+            
+            // TODO: move this which model to display logic to viewModel
+            if let searchedLocation = viewModel.selectedSearchLocation {
                 return searchedLocation
             }
-            guard let id = selectedLocationId, let savedLocation = viewModel.location(with: id) else {
-                return LocationModel("")
+            guard let id = selectedLocationId, let loc = viewModel.location(with: id) else  {
+                return LocationModel("LOL WAT?")
             }
-            return savedLocation
+            return loc
+            
         } set: { updatedLocation in
             viewModel.update(updatedLocation)
         }
@@ -27,7 +30,8 @@ struct LocationWeatherView: View {
     
     var body: some View {
         ZStack {
-            if viewModel.contains(selectedLocationId) {
+            // TODO: move this should show detail logic to viewModel
+            if viewModel.contains(selectedLocationId) || viewModel.selectedSearchLocation != nil {
                 CurrentWeatherView(location: location)
             } else {
                 Text("Select a Location")
@@ -96,8 +100,18 @@ struct CurrentWeatherView: View {
     }
     
     @ViewBuilder func locationName() -> some View {
-        Text(location.name)
-            .font(.title)
+        VStack {
+            Text(location.name)
+                .font(.title)
+            if let region = location.region {
+                Text(region)
+                    .font(.caption)
+            }
+            if let country = location.country {
+                Text(country)
+                    .font(.caption2)
+            }
+        }
     }
     
     func systemImageName(for unit: WeatherTempModel.TempUnit) -> String {

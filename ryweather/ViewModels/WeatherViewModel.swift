@@ -76,7 +76,9 @@ class WeatherViewModel {
 // Sharde helper model transformation functions
 extension WeatherViewModel {
     func fetchCurrentWeather(for location: LocationModel) async throws {
-        if let weatherModel = try await weatherDataProvider?.fetchCurrentWeather(for: location.name) {
+        guard let url = location.currentUrl else { return }
+        
+        if let weatherModel = try await weatherDataProvider?.fetchCurrentWeather(for: url) {
             if let index = locationIndex(location.id) {
                 locations[index] = LocationModel(location.name, id: location.id, currentWeather: weatherModel)
             }
@@ -90,27 +92,36 @@ extension WeatherViewModel {
     func onSearchTextChanged(from oldValue: String, to newValue: String) {
         // TODO: also add a debounce time buffer
         // TODO: also check the Task/threading, may need to queue these up
-        if searchText.count > 2 && oldValue != newValue {
-            logger.debug("? : \(self.searchText)")
+        if searchText.count >= 3 && oldValue != newValue  && newValue != selectedSearchLocation?.currentUrl {
+            logger.debug("seaching due to searchText changing to : '\(newValue)'")
             Task {
                 do {
-                    try await searchForLocationsUsingSearchText()
+                    let result = try await weatherDataProvider?.search(for: newValue)
+                    
+                    //TODO: do we need the searchText String in the response model, it should match `self.searchText`
+                    searchResults = result?.locations ?? []
                 } catch {
                     logger.error("failed to get search result: \(error)")
                 }
             }
+        } else if searchText.count < 3 {
+            searchResults = []
         }
     }
-    
-    func searchForLocationsUsingSearchText() async throws {
-        let result = try await weatherDataProvider?.search(for: searchText)
-        
-        //TODO: do we need the searchText String in the response model, it should match `self.searchText`
-        searchResults = result?.locations ?? []
-    }
-    
+
     func onSubmitOfSearch() {
-        selectedSearchLocation = searchResults.first
-        logger.debug(">>> onSubmit of search: \(String(describing: self.selectedSearchLocation))")
+        logger.debug(">>> onSubmit of search: \(self.searchText) saving search matching location to 'selectedSearchLocation'")
+        let location = searchResults.first { $0.currentUrl == self.searchText }
+        guard let location = location, let url = location.currentUrl else { return }
+        Task {
+            do {
+                if let weatherModel = try await weatherDataProvider?.fetchCurrentWeather(for: url) {
+                    selectedSearchLocation = LocationModel(location.name, id: location.id, currentWeather: weatherModel)
+                }
+            } catch {
+                logger.error("onSubmit, failed to get searched weather data: \(error)")
+                
+            }
+        }
     }
 }
