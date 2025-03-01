@@ -124,7 +124,3 @@ struct CurrentWeatherView: View {
     }
 }
 
-#Preview(traits: .sampleWeatherViewModel) {
-    @Previewable @State var id: LocationModel.ID? = 0
-    LocationWeatherView(selectedLocationId: $id)
-}

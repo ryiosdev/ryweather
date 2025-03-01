@@ -16,7 +16,7 @@ struct LocationModel: Identifiable, Hashable {
     let name: String
     var region: String?
     var country: String?
-    var currentUrl: String?
+    var searchText: String?
     var currentWeather: WeatherModel?
     
     init(_ name: String, id: Int = 0, currentWeather: WeatherModel? = nil) {
@@ -25,12 +25,12 @@ struct LocationModel: Identifiable, Hashable {
         self.currentWeather = currentWeather
     }
     
-    init(id: Int, name: String, region: String, country: String, url: String) {
+    init(id: Int, name: String, region: String, country: String, searchText: String) {
         self.id = id
         self.name = name
         self.region = region
         self.country = country
-        self.currentUrl = url
+        self.searchText = searchText
     }
 }
 
@@ -48,7 +48,7 @@ struct WeatherModel: Hashable {
 }
 
 struct WeatherTempModel: Hashable {
-    enum TempUnit: String, CaseIterable {
+    enum TempUnit: String {
         case celsius
         case fahrenheit
     }

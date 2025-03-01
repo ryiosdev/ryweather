@@ -12,9 +12,6 @@ struct LocationList: View {
     @Binding var searchText: String
     
     @Environment(WeatherViewModel.self) private var viewModel
-    
-    //TODO: isSearching needs bo be on the wrapper view that contains the 'List' to work...
-    @Environment(\.isSearching) var isSearching
 
     var body: some View {
         NavigationStack {
@@ -26,7 +23,7 @@ struct LocationList: View {
             .searchable(text: $searchText, suggestions: {
                 ForEach(viewModel.searchResults) { suggestion in
                     searchResultRow(suggestion)
-                        .searchCompletion(suggestion.currentUrl ?? "")
+                        .searchCompletion(suggestion.searchText ?? "")
                 }
             })
         }
@@ -74,10 +71,3 @@ struct LocationList: View {
     }
 }
 
-#Preview(traits: .sampleWeatherViewModel) {
-    @Previewable @State var id: LocationModel.ID? = 0
-    @Previewable @State var searchText: String = ""
-    NavigationStack {
-        LocationList(selectedLocationId: $id, searchText: $searchText)
-    }
-}

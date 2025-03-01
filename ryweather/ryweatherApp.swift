@@ -7,13 +7,21 @@
 
 import SwiftUI
 import OSLog
+import SwiftData
 
-let logger = Logger(subsystem: "com.ryweather.ryweather", category: "general")
+let logger = Logger(subsystem: "com.ryiosdev.ryweather", category: "general")
 
 @main
-struct ryweatherApp: App {
-    @State private var viewModel = WeatherViewModel()
+struct RYWeatherApp: App {
+    @State private var viewModel: WeatherViewModel
     @State private var selectedLocationId: LocationModel.ID?
+    
+    init() {
+        let config = DefaultViewModelConfig()
+        let viewModel = WeatherViewModel(config: config)
+        _viewModel = State(initialValue: viewModel)
+    }
+    
     var body: some Scene {
         WindowGroup {
             NavigationSplitView {
@@ -24,42 +32,4 @@ struct ryweatherApp: App {
             .environment(viewModel)
         }
     }
-}
-
-// global preview helper to set mock WeatherViewModel
-struct SampleWeatherViewModel: PreviewModifier {
-    typealias Context = WeatherViewModel
-    
-    struct SampleWeatherDataProvider: WeatherDataProvider {
-        func search(for searchText: String) async throws -> LocationSearchResultModel {
-            LocationSearchResultModel(searchText: searchText, locations: [LocationModel("San Jose")])
-        }
-        
-        func fetchCurrentWeather(for locationDescription: String) async throws -> WeatherModel {
-            return WeatherModel(temps: [.init(unit: .fahrenheit, value: 90), .init(unit: .celsius, value: 32)],
-                         condition: .init(text: "Partly Cloudy",
-                                          iconUrl: "https://cdn.weatherapi.com/weather/64x64/night/116.png"))
-        }
-    }
-    
-    static func makeSharedContext() async throws -> Context {
-        
-        let viewModel = WeatherViewModel(WeatherViewModel.defaultLocations, .fahrenheit, SampleWeatherDataProvider())
-        for location in viewModel.locations {
-            do {
-                try await viewModel.fetchCurrentWeather(for: location)
-            } catch {
-                print("preview caught error while calling fetchCurrentWeather")
-            }
-        }
-        return viewModel
-    }
-    
-    func body(content: Content, context: Context) -> some View {
-        return content.environment(context)
-    }
-}
-
-extension PreviewTrait where T == Preview.ViewTraits {
-    @MainActor static var sampleWeatherViewModel: Self = .modifier(SampleWeatherViewModel())
 }

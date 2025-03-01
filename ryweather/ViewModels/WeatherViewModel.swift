@@ -23,14 +23,15 @@ class WeatherViewModel {
     var searchResults = [LocationModel]()
     var selectedSearchLocation: LocationModel?
     
-    @ObservationIgnored private var weatherDataProvider: WeatherDataProvider?
+    @ObservationIgnored private var modelContext: ModelContext
+    @ObservationIgnored private var weatherDataProvider: WeatherDataProvider
     
-    init(_ locs: [LocationModel] = WeatherViewModel.defaultLocations,
-         _ temp: WeatherTempModel.TempUnit = .fahrenheit,
-         _ provider: WeatherDataProvider? = WeatherAPIDataSource(apiKey: UserDefaults.standard.string(forKey: "apikey") ?? "")) {
-        self.locations = locs
-        self.selectedTempUnit = temp
-        self.weatherDataProvider = provider
+    init(config: ViewModelConfiguration) {
+        self.modelContext = config.modelContext()
+        self.weatherDataProvider = config.weatherDataprovider()
+        
+        self.locations = WeatherViewModel.defaultLocations
+        self.selectedTempUnit = .fahrenheit
     }
     
     //CRUD operations for locations array.
@@ -76,12 +77,11 @@ class WeatherViewModel {
 // Sharde helper model transformation functions
 extension WeatherViewModel {
     func fetchCurrentWeather(for location: LocationModel) async throws {
-        guard let url = location.currentUrl else { return }
+        guard let search = location.searchText else { return }
         
-        if let weatherModel = try await weatherDataProvider?.fetchCurrentWeather(for: url) {
-            if let index = locationIndex(location.id) {
-                locations[index] = LocationModel(location.name, id: location.id, currentWeather: weatherModel)
-            }
+        let weatherModel = try await weatherDataProvider.fetchCurrentWeather(for: search)
+        if let index = locationIndex(location.id) {
+            locations[index] = LocationModel(location.name, id: location.id, currentWeather: weatherModel)
         }
     }
     
@@ -92,14 +92,14 @@ extension WeatherViewModel {
     func onSearchTextChanged(from oldValue: String, to newValue: String) {
         // TODO: also add a debounce time buffer
         // TODO: also check the Task/threading, may need to queue these up
-        if searchText.count >= 3 && oldValue != newValue  && newValue != selectedSearchLocation?.currentUrl {
+        if searchText.count >= 3 && oldValue != newValue  && newValue != selectedSearchLocation?.searchText {
             logger.debug("seaching due to searchText changing to : '\(newValue)'")
             Task {
                 do {
-                    let result = try await weatherDataProvider?.search(for: newValue)
+                    let result = try await weatherDataProvider.search(for: newValue)
                     
                     //TODO: do we need the searchText String in the response model, it should match `self.searchText`
-                    searchResults = result?.locations ?? []
+                    searchResults = result.locations
                 } catch {
                     logger.error("failed to get search result: \(error)")
                 }
@@ -111,13 +111,13 @@ extension WeatherViewModel {
 
     func onSubmitOfSearch() {
         logger.debug(">>> onSubmit of search: \(self.searchText) saving search matching location to 'selectedSearchLocation'")
-        let location = searchResults.first { $0.currentUrl == self.searchText }
-        guard let location = location, let url = location.currentUrl else { return }
+        let location = searchResults.first { $0.searchText == self.searchText }
+        guard let location = location, let search = location.searchText else { return }
         Task {
             do {
-                if let weatherModel = try await weatherDataProvider?.fetchCurrentWeather(for: url) {
-                    selectedSearchLocation = LocationModel(location.name, id: location.id, currentWeather: weatherModel)
-                }
+                let weatherModel = try await weatherDataProvider.fetchCurrentWeather(for: search)
+                selectedSearchLocation = LocationModel(location.name, id: location.id, currentWeather: weatherModel)
+                
             } catch {
                 logger.error("onSubmit, failed to get searched weather data: \(error)")
                 

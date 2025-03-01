@@ -75,7 +75,7 @@ extension WeatherAPIDataSource: WeatherDataProvider {
                               name: json.name,
                               region: json.region,
                               country: json.country,
-                              url: json.url.replacingOccurrences(of: "-", with: " "))
+                              searchText: json.url.replacingOccurrences(of: "-", with: " "))
             }
             let searchResultModel = LocationSearchResultModel(searchText: searchText, locations: locationModels)
             return searchResultModel
