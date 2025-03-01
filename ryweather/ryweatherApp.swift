@@ -14,7 +14,6 @@ let logger = Logger(subsystem: "com.ryiosdev.ryweather", category: "general")
 @main
 struct RYWeatherApp: App {
     @State private var viewModel: WeatherViewModel
-    @State private var selectedLocationId: LocationModel.ID?
     
     init() {
         let config = DefaultViewModelConfig()
@@ -24,12 +23,8 @@ struct RYWeatherApp: App {
     
     var body: some Scene {
         WindowGroup {
-            NavigationSplitView {
-                LocationList(selectedLocationId: $selectedLocationId, searchText: $viewModel.searchText)
-            } detail: {
-                LocationWeatherView(selectedLocationId: $selectedLocationId)
-            }
-            .environment(viewModel)
+            ContentView(viewModel: viewModel)
+            .environment(viewModel) //TODO: move this out of env..
         }
     }
 }

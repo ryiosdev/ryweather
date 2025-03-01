@@ -13,10 +13,10 @@ protocol ViewModelConfiguration {
     var schema: Schema { get }
     var inMemory: Bool { get }
     func modelContext() -> ModelContext
-    func weatherDataprovider() -> WeatherDataProvider
+    func weatherDataProvider() -> WeatherDataProvider
 }
 
-// Default Implementation
+// MARK: Default Implementation
 extension ViewModelConfiguration {
     var schema: Schema {
         Schema([ Item.self ])
@@ -34,6 +34,7 @@ extension ViewModelConfiguration {
     }
     
     func modelContext() -> ModelContext {
+        //Use this code to blow away the macOS app's previous SwiftData store.
 //        let urlApp = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).last
 //        let url = urlApp!.appendingPathComponent("default.store")
 //        if FileManager.default.fileExists(atPath: url.path) {
@@ -49,9 +50,17 @@ extension ViewModelConfiguration {
         }
     }
     
-    func weatherDataprovider() -> WeatherDataProvider {
+    func weatherDataProvider() -> WeatherDataProvider {
         WeatherAPIDataSource(apiKey: UserDefaults.standard.string(forKey: "apikey") ?? "")
     }
 }
 
 struct DefaultViewModelConfig: ViewModelConfiguration { }
+
+
+// MARK: Preview Implementation
+// TODO:
+
+
+// MARK: Unit Test Implementation
+// TODO:

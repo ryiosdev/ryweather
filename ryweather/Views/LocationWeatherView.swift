@@ -11,32 +11,32 @@ struct LocationWeatherView: View {
     @Binding var selectedLocationId: LocationModel.ID?
     @Environment(WeatherViewModel.self) private var viewModel
 
-    private var location: Binding<LocationModel> {
-        Binding {
-            
-            // TODO: move this which model to display logic to viewModel
-            if let searchedLocation = viewModel.selectedSearchLocation {
-                return searchedLocation
-            }
-            guard let id = selectedLocationId, let loc = viewModel.location(with: id) else  {
-                return LocationModel("LOL WAT?")
-            }
-            return loc
-            
-        } set: { updatedLocation in
-            viewModel.update(updatedLocation)
-        }
-    }
+//    private var location: Binding<LocationModel> {
+//        Binding {
+//            
+//            // TODO: move this which model to display logic to viewModel
+//            if let searchedLocation = viewModel.selectedSearchLocation {
+//                return searchedLocation
+//            }
+//            guard let id = selectedLocationId, let loc = viewModel.location(with: id) else  {
+//                return LocationModel("LOL WAT?")
+//            }
+//            return loc
+//            
+//        } set: { updatedLocation in
+//            viewModel.update(updatedLocation)
+//        }
+//    }
     
     var body: some View {
         ZStack {
             // TODO: move this should show detail logic to viewModel
-            if viewModel.contains(selectedLocationId) || viewModel.selectedSearchLocation != nil {
-                CurrentWeatherView(location: location)
-            } else {
+//            if viewModel.contains(selectedLocationId) || viewModel.selectedSearchLocation != nil {
+//                CurrentWeatherView(location: location)
+//            } else {
                 Text("Select a Location")
                     .foregroundStyle(.secondary)
-            }
+//            }
         }
     }
 }

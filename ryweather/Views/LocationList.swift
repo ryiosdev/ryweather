@@ -33,7 +33,6 @@ struct LocationList: View {
         .onSubmit(of: .search) {
             //deselect anytyhing previously saved and shown.
             selectedLocationId = nil
-            // TODO: programatically push to detail view
             viewModel.onSubmitOfSearch()
         }
 #if os(macOS)

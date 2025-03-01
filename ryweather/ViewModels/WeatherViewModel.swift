@@ -11,16 +11,13 @@ import SwiftData
 
 @Observable @MainActor
 class WeatherViewModel {
-    static let defaultLocations: [LocationModel] = [LocationModel("San Antonio", id: 0),
-                                                    LocationModel("New York", id: 1),
-                                                    LocationModel("London", id: 2),
-                                                    LocationModel("Anchorage", id: 3),
-                                                    LocationModel("Tokyo", id: 4)]
-    var locations: [LocationModel]
+    //saved locations...
+    var locations: [LocationModel] = []
+    
     var selectedTempUnit: WeatherTempModel.TempUnit
     
     var searchText: String = ""
-    var searchResults = [LocationModel]()
+    var searchResults: [LocationModel] = []
     var selectedSearchLocation: LocationModel?
     
     @ObservationIgnored private var modelContext: ModelContext
@@ -28,9 +25,8 @@ class WeatherViewModel {
     
     init(config: ViewModelConfiguration) {
         self.modelContext = config.modelContext()
-        self.weatherDataProvider = config.weatherDataprovider()
+        self.weatherDataProvider = config.weatherDataProvider()
         
-        self.locations = WeatherViewModel.defaultLocations
         self.selectedTempUnit = .fahrenheit
     }
     
@@ -76,19 +72,13 @@ class WeatherViewModel {
 
 // Sharde helper model transformation functions
 extension WeatherViewModel {
-    func fetchCurrentWeather(for location: LocationModel) async throws {
-        guard let search = location.searchText else { return }
+    func fetchCurrentWeather(for location: LocationModel) async throws -> WeatherModel? {
+        guard let search = location.searchText else { return nil }
         
         let weatherModel = try await weatherDataProvider.fetchCurrentWeather(for: search)
-        if let index = locationIndex(location.id) {
-            locations[index] = LocationModel(location.name, id: location.id, currentWeather: weatherModel)
-        }
+        return weatherModel
     }
-    
-    func fetchForecastWeather(for location: LocationModel) async throws {
         
-    }
-    
     func onSearchTextChanged(from oldValue: String, to newValue: String) {
         // TODO: also add a debounce time buffer
         // TODO: also check the Task/threading, may need to queue these up
@@ -116,7 +106,10 @@ extension WeatherViewModel {
         Task {
             do {
                 let weatherModel = try await weatherDataProvider.fetchCurrentWeather(for: search)
-                selectedSearchLocation = LocationModel(location.name, id: location.id, currentWeather: weatherModel)
+                
+                // TODO:
+//                selectedSearchLocation = //LocationModel(location.name, id: location.id, currentWeather: weatherModel)
+                
                 
             } catch {
                 logger.error("onSubmit, failed to get searched weather data: \(error)")
