@@ -103,14 +103,10 @@ struct CurrentWeatherView: View {
         VStack {
             Text(location.name)
                 .font(.title)
-            if let region = location.region {
-                Text(region)
-                    .font(.caption)
-            }
-            if let country = location.country {
-                Text(country)
-                    .font(.caption2)
-            }
+            Text(location.region)
+                .font(.caption)
+            Text(location.country)
+                .font(.caption2)
         }
     }
     

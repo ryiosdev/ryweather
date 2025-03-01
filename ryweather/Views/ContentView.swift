@@ -17,5 +17,21 @@ struct ContentView: View {
         } detail: {
             LocationWeatherView(selectedLocationId: $selectedLocationId)
         }
+#if os(macOS)
+        .searchable(text: $viewModel.searchText,
+                    placement: .automatic,
+                    prompt: "Search by City Name")
+#else
+        .searchable(text: $viewModel.searchText,
+                    placement: .navigationBarDrawer(displayMode: .always),
+                    prompt: "Search by City Name")
+#endif
+        .searchSuggestions {
+            ForEach(viewModel.searchResults) { suggestedLocation in
+                SuggestionRow(location: suggestedLocation)
+                    .searchCompletion(suggestedLocation.searchText)
+            }
+        }
+
     }
 }

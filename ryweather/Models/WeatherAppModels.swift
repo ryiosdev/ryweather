@@ -14,9 +14,9 @@ struct LocationSearchResultModel {
 struct LocationModel: Identifiable, Hashable {
     let id: Int
     let name: String
-    var region: String?
-    var country: String?
-    var searchText: String?
+    var region: String
+    var country: String
+    var searchText: String
     var currentWeather: WeatherModel?
 
     init(id: Int, name: String, region: String, country: String, searchText: String) {

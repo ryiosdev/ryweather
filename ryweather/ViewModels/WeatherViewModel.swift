@@ -73,9 +73,7 @@ class WeatherViewModel {
 // Sharde helper model transformation functions
 extension WeatherViewModel {
     func fetchCurrentWeather(for location: LocationModel) async throws -> WeatherModel? {
-        guard let search = location.searchText else { return nil }
-        
-        let weatherModel = try await weatherDataProvider.fetchCurrentWeather(for: search)
+        let weatherModel = try await weatherDataProvider.fetchCurrentWeather(for: location.searchText)
         return weatherModel
     }
         
@@ -102,10 +100,10 @@ extension WeatherViewModel {
     func onSubmitOfSearch() {
         logger.debug(">>> onSubmit of search: \(self.searchText) saving search matching location to 'selectedSearchLocation'")
         let location = searchResults.first { $0.searchText == self.searchText }
-        guard let location = location, let search = location.searchText else { return }
+        guard let location = location else { return }
         Task {
             do {
-                let weatherModel = try await weatherDataProvider.fetchCurrentWeather(for: search)
+                let weatherModel = try await weatherDataProvider.fetchCurrentWeather(for: location.searchText)
                 
                 // TODO:
 //                selectedSearchLocation = //LocationModel(location.name, id: location.id, currentWeather: weatherModel)

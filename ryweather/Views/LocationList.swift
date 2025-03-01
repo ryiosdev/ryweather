@@ -20,12 +20,6 @@ struct LocationList: View {
                     locationRow(location)
                 }
             }
-            .searchable(text: $searchText, suggestions: {
-                ForEach(viewModel.searchResults) { suggestion in
-                    searchResultRow(suggestion)
-                        .searchCompletion(suggestion.searchText ?? "")
-                }
-            })
         }
         .onChange(of: searchText) { oldValue, newValue in
             viewModel.onSearchTextChanged(from: oldValue, to: newValue)
@@ -60,13 +54,13 @@ struct LocationList: View {
         }
     }
     
-    @ViewBuilder func searchResultRow(_ location: LocationModel) -> some View {
-        VStack(alignment: .leading) {
-            Text(location.name + (location.region == nil ? "" : ", " + location.region!))
-            Text(location.country ?? "")
-                .font(.caption)
-
-        }
-    }
+//    @ViewBuilder func searchResultRow(_ location: LocationModel) -> some View {
+//        VStack(alignment: .leading) {
+//            Text(location.name + (location.region == nil ? "" : ", " + location.region!))
+//            Text(location.country ?? "")
+//                .font(.caption)
+//
+//        }
+//    }
 }
 
