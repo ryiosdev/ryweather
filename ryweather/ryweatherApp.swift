@@ -19,11 +19,12 @@ struct RYWeatherApp: App {
         
     init() {
         var inMem = false
+#if DEBUG
         //if within the preview or unit tests, use in mem storage
         if CommandLine.arguments.contains("debug_store_data_in_mem_only") {
             inMem = true
         }
-        
+#endif        
         let apiKey = UserDefaults.standard.string(forKey: "apikey") ?? ""
         
         config = DefaultViewModelConfig(inMemoryOnly: inMem, weatherAPIKey: apiKey)

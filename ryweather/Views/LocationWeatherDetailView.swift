@@ -7,14 +7,12 @@
 
 import SwiftUI
 
-struct LocationWeatherView: View {
+struct LocationWeatherDetailView: View {
     var viewModel: WeatherViewModel
 
     var body: some View {
-        if let searchedLocation = viewModel.selectedSearchLocation {
-            CurrentWeatherView(location: searchedLocation, tempUnit: viewModel.selectedTempUnit)
-        }else if let savedLocation = viewModel.location(with: viewModel.selectedLocationId) {
-            CurrentWeatherView(location: savedLocation, tempUnit: viewModel.selectedTempUnit)
+        if let location = viewModel.detailViewLocation {
+            CurrentWeatherView(location: location, tempUnit: viewModel.selectedTempUnit)
         } else {
             Text("Select a Location")
                 .foregroundStyle(.secondary)

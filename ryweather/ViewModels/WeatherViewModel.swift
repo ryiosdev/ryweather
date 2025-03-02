@@ -13,13 +13,14 @@ import SwiftData
 class WeatherViewModel {
     //saved locations...
     var locations: [LocationModel] = []
-    var selectedLocationId: LocationModel.ID?
+//    var selectedLocationId: LocationModel.ID?
 
     var selectedTempUnit: WeatherTempModel.TempUnit
     
     var searchText: String = ""
     var searchResults: [LocationModel] = []
-    var selectedSearchLocation: LocationModel?
+    
+    var detailViewLocation: LocationModel?
     
     private var modelContext: ModelContext
     @ObservationIgnored private var weatherDataProvider: WeatherDataProvider
@@ -37,7 +38,7 @@ class WeatherViewModel {
             let descriptor = FetchDescriptor<LocationModel>(sortBy: [SortDescriptor(\.savedAt)])
             locations = try modelContext.fetch(descriptor)
         } catch {
-            print("Fetch failed")
+            logger.error("Fetch failed : \(error)")
         }
     }
     
@@ -65,26 +66,28 @@ class WeatherViewModel {
         try? modelContext.save()
         fetchSavedLocations()
     }
-    
-    func showDetailsForSaved(location: LocationModel) {
-        selectedLocationId = location.id
-        selectedSearchLocation = nil
-    }
 }
 
 // Actions and model transformation methods
 extension WeatherViewModel {
-    func fetchCurrentWeather(for location: LocationModel) async throws {
-        let weatherModel = try await weatherDataProvider.fetchCurrentWeather(for: location.searchText)
-        location.currentWeather = weatherModel
-        try? modelContext.save()
+    func updateCurrentWeather(for location: LocationModel) async {
+        logger.debug("updating current weather for : \(location.name)")
+        do {
+            let weatherModel = try await weatherDataProvider.fetchCurrentWeather(for: location.searchText)
+            location.currentWeather = weatherModel
+            if locations.contains(location) {
+                try modelContext.save()
+            }
+        } catch {
+            logger.error("Error fetching weather: \(error)")
+        }
     }
-            
+
     func onSearchTextChanged(from oldValue: String, to newValue: String) {
         // TODO: also add a debounce time buffer
         // TODO: also check the Task/threading, may need to queue these up
-        if searchText.count >= 3 && oldValue != newValue  && newValue != selectedSearchLocation?.searchText {
-            logger.debug("seaching due to searchText changing to : '\(newValue)'")
+        if searchText.count >= 3 && oldValue != newValue  && newValue != detailViewLocation?.searchText {
+            logger.debug("searching due to searchText changing to : '\(newValue)'")
             Task {
                 do {
                     let result = try await weatherDataProvider.search(for: newValue)
@@ -101,22 +104,30 @@ extension WeatherViewModel {
     }
 
     func onSubmitOfSearch() {
-        logger.debug(">>> onSubmit of search: \(self.searchText) saving search matching location to 'selectedSearchLocation'")
-        let location = searchResults.first { $0.searchText == self.searchText }
-        guard let location = location else { return }
-        
-        Task {
-            do {
-//                try await fetchCurrentWeather(for: location)
-                // TODO:
-
-                //TEMP HACK
-                add(location)
-                
-            } catch {
-                logger.error("onSubmit, failed to get searched weather data: \(error)")
-                
+        logger.debug("on submit of search with text : '\(self.searchText)'")
+        if let location = searchResults.first(where: { $0.searchText == self.searchText }) {
+            detailViewLocation = location
+        } else {
+            // check for partial matches
+            let locations = searchResults.filter( { $0.name.lowercased().contains(searchText.lowercased()) } )
+            
+            // if partial match, auto complete to the first item in the list.
+            if locations.count > 0 {
+                detailViewLocation = searchResults[0]
+            } else {
+                // no match
+                detailViewLocation = nil
             }
         }
+        if let location = detailViewLocation {
+            searchText = ""
+            Task {
+                await updateCurrentWeather(for: location)
+            }
+        }
+    }
+    
+    func onDismissOfSheetDetailView() {
+        detailViewLocation = nil
     }
 }

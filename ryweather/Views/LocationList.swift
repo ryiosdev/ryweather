@@ -14,18 +14,15 @@ struct LocationList: View {
     @Bindable var viewModel: WeatherViewModel
     
     var body: some View {
-        List(selection: $viewModel.selectedLocationId) {
+        List() {//selection: $viewModel.selectedLocationId) {
             ForEach(viewModel.locations) { location in
                 SavedLocationRow(location: location, tempUnit: viewModel.selectedTempUnit)
                     .task {
-                        do {
-                            try await viewModel.fetchCurrentWeather(for: location)
-                        } catch {
-                            logger.error("Error fetching weather: \(error)")
-                        }
+                        await viewModel.updateCurrentWeather(for: location)
                     }
                     .onTapGesture {
-                        viewModel.showDetailsForSaved(location: location)
+                        //TODO: this is still a bit backwards, the List's selection binding should drive what's in the view (
+                        viewModel.detailViewLocation = location
                     }
                     .swipeActions(edge: .trailing) {
                         Button(role: .destructive) {
@@ -38,17 +35,7 @@ struct LocationList: View {
                     }
             }
         }
-#if os(iOS)
-//        // TODO: maybe it makes more sense to put this in DetailView or ContainerView
-//        .sheet(isPresented: $viewModel.isSheetDetailPresented,
-//               onDismiss: {
-//            withAnimation {
-//                viewModel.onDismissOfSheetDetailView()
-//            }
-//        }, content: {
-//            SheetDetailView(viewModel: viewModel)
-//        })
-#elseif os(macOS)
+#if os(macOS)
         // macOS right click delete
 //        .contextMenu(forSelectionType: Item.ID.self) { ids in
 //            // if at least one side bar row selected
