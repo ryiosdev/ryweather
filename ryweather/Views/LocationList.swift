@@ -50,17 +50,17 @@ struct LocationList: View {
 //        })
 #elseif os(macOS)
         // macOS right click delete
-        .contextMenu(forSelectionType: Item.ID.self) { ids in
-            // if at least one side bar row selected
-            if viewModel.shouldShowDeleteButton(for: ids) {
-                Button("Delete", role: .destructive) {
-                    withAnimation {
-                        viewModel.deleteSideBarItems(ids: ids)
-                    }
-                }
-            }
-        }
-        .navigationSplitViewColumnWidth(min: 180, ideal: 200)
+//        .contextMenu(forSelectionType: Item.ID.self) { ids in
+//            // if at least one side bar row selected
+//            if viewModel.shouldShowDeleteButton(for: ids) {
+//                Button("Delete", role: .destructive) {
+//                    withAnimation {
+//                        viewModel.deleteSideBarItems(ids: ids)
+//                    }
+//                }
+//            }
+//        }
+//        .navigationSplitViewColumnWidth(min: 180, ideal: 200)
 #endif
     }
 }

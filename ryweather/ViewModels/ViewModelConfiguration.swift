@@ -35,7 +35,7 @@ struct DefaultViewModelConfig: ViewModelConfiguration {
         let schema = Schema([LocationModel.self])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: inMemoryOnly)
         do {
-            self.modelContainer = try ModelContainer(for: schema, configurations: [config])
+            modelContainer = try ModelContainer(for: schema, configurations: [config])
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }

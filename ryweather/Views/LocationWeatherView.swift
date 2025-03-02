@@ -90,14 +90,5 @@ struct CurrentWeatherView: View {
                 .font(.caption2)
         }
     }
-    
-    func systemImageName(for unit: WeatherTempModel.TempUnit) -> String {
-        switch (unit) {
-        case .celsius:
-            "degreesign.celsius"
-        case .fahrenheit:
-            "degreesign.fahrenheit"
-        }
-    }
 }
 
