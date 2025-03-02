@@ -5,20 +5,23 @@
 //  Created by Ryan Young on 2/8/25.
 //
 import Foundation
+import SwiftData
 
 struct LocationSearchResultModel {
     var searchText: String
     var locations: [LocationModel]
 }
 
-struct LocationModel: Identifiable, Hashable {
-    let id: Int
-    let name: String
+@Model
+class LocationModel: Identifiable {
+    @Attribute(.unique) var id: Int
+    var name: String
     var region: String
     var country: String
     var searchText: String
-    var currentWeather: WeatherModel?
-
+    var savedAt: Date?
+    var currentWeather: WeatherModel? = nil
+    
     init(id: Int, name: String, region: String, country: String, searchText: String) {
         self.id = id
         self.name = name
@@ -28,7 +31,7 @@ struct LocationModel: Identifiable, Hashable {
     }
 }
 
-struct WeatherModel: Hashable {
+struct WeatherModel: Codable {
     var temps: [WeatherTempModel]
     var condition: WeatherConditionModel
     
@@ -41,8 +44,8 @@ struct WeatherModel: Hashable {
     }
 }
 
-struct WeatherTempModel: Hashable {
-    enum TempUnit: String {
+struct WeatherTempModel: Codable {
+    enum TempUnit: String, Codable {
         case celsius
         case fahrenheit
     }
@@ -51,7 +54,7 @@ struct WeatherTempModel: Hashable {
     var feelsLike: Double?
 }
 
-struct WeatherConditionModel: Hashable {
+struct WeatherConditionModel: Codable {
     var text: String
     var iconUrl: String?
 }

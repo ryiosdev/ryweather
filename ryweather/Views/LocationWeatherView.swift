@@ -8,43 +8,24 @@
 import SwiftUI
 
 struct LocationWeatherView: View {
-    @Binding var selectedLocationId: LocationModel.ID?
-    @Environment(WeatherViewModel.self) private var viewModel
+    var viewModel: WeatherViewModel
 
-//    private var location: Binding<LocationModel> {
-//        Binding {
-//            
-//            // TODO: move this which model to display logic to viewModel
-//            if let searchedLocation = viewModel.selectedSearchLocation {
-//                return searchedLocation
-//            }
-//            guard let id = selectedLocationId, let loc = viewModel.location(with: id) else  {
-//                return LocationModel("LOL WAT?")
-//            }
-//            return loc
-//            
-//        } set: { updatedLocation in
-//            viewModel.update(updatedLocation)
-//        }
-//    }
-    
     var body: some View {
-        ZStack {
-            // TODO: move this should show detail logic to viewModel
-//            if viewModel.contains(selectedLocationId) || viewModel.selectedSearchLocation != nil {
-//                CurrentWeatherView(location: location)
-//            } else {
-                Text("Select a Location")
-                    .foregroundStyle(.secondary)
-//            }
+        if let searchedLocation = viewModel.selectedSearchLocation {
+            CurrentWeatherView(location: searchedLocation, tempUnit: viewModel.selectedTempUnit)
+        }else if let savedLocation = viewModel.location(with: viewModel.selectedLocationId) {
+            CurrentWeatherView(location: savedLocation, tempUnit: viewModel.selectedTempUnit)
+        } else {
+            Text("Select a Location")
+                .foregroundStyle(.secondary)
         }
     }
 }
 
 struct CurrentWeatherView: View {
-    @Environment(WeatherViewModel.self) private var viewModel
     @ScaledMetric var scale: CGFloat = 1.0
-    @Binding var location: LocationModel
+    var location: LocationModel
+    var tempUnit: WeatherTempModel.TempUnit
 
     var body: some View {
         VStack(spacing: 5) {
@@ -53,7 +34,7 @@ struct CurrentWeatherView: View {
             locationName()
             Group {
                 Text(location.currentWeather?.condition.text ?? "Searching...") // the "Searching..." is a placeholder string for redaction
-                Text("Feels Like: " + String(format: "%.0fº", location.currentWeather?.feelsLike(in: viewModel.selectedTempUnit) ?? "--"))
+                Text("Feels Like: " + String(format: "%.0fº", location.currentWeather?.feelsLike(in: tempUnit) ?? "--"))
             }
             .foregroundStyle(.secondary)
             .redacted(reason: location.currentWeather == nil ? .placeholder : [])
@@ -63,7 +44,7 @@ struct CurrentWeatherView: View {
     @ViewBuilder
     func tempView() -> some View {
         Group {
-            if let temp = location.currentWeather?.temp(in: viewModel.selectedTempUnit) {
+            if let temp = location.currentWeather?.temp(in: tempUnit) {
                 Text(String(format: " %.0fº", temp)) //The extra white space is to help center the digits
             } else {
                 Text("--")

@@ -13,18 +13,31 @@ let logger = Logger(subsystem: "com.ryiosdev.ryweather", category: "general")
 
 @main
 struct RYWeatherApp: App {
-    @State private var viewModel: WeatherViewModel
+    private let config: ViewModelConfiguration
     
+    @State private var viewModel: WeatherViewModel
+        
     init() {
-        let config = DefaultViewModelConfig()
-        let viewModel = WeatherViewModel(config: config)
+        var inMem = false
+        //if within the preview or unit tests, use in mem storage
+        if CommandLine.arguments.contains("debug_store_data_in_mem_only") {
+            inMem = true
+        }
+        
+        let apiKey = UserDefaults.standard.string(forKey: "apikey") ?? ""
+        
+        config = DefaultViewModelConfig(inMemoryOnly: inMem, weatherAPIKey: apiKey)
+        
+        let viewModel = WeatherViewModel(modelContext: config.modelContainer.mainContext,
+                                         weatherDataProvider: config.weatherDataProvider)
         _viewModel = State(initialValue: viewModel)
     }
     
     var body: some Scene {
         WindowGroup {
             ContentView(viewModel: viewModel)
-            .environment(viewModel) //TODO: move this out of env..
         }
+        .modelContainer(config.modelContainer)
+
     }
 }

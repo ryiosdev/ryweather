@@ -10,52 +10,38 @@ import SwiftData
 
 @MainActor
 protocol ViewModelConfiguration {
-    var schema: Schema { get }
-    var inMemory: Bool { get }
-    func modelContext() -> ModelContext
-    func weatherDataProvider() -> WeatherDataProvider
+    var modelContainer: ModelContainer { get }
+    var weatherDataProvider: WeatherDataProvider { get }
 }
 
 // MARK: Default Implementation
 extension ViewModelConfiguration {
-    var schema: Schema {
-        Schema([ Item.self ])
+    func weatherDataProvider() -> WeatherDataProvider {
+        WeatherAPIDataSource(apiKey: UserDefaults.standard.string(forKey: "apikey") ?? "")
     }
+}
+
+struct DefaultViewModelConfig: ViewModelConfiguration {
+    var modelContainer: ModelContainer
+    var weatherDataProvider: WeatherDataProvider
     
-    var inMemory: Bool {
-        var inMem = false
-#if DEBUG
-        //if within the preview or unit tests, use in mem storage
-        if CommandLine.arguments.contains("debug_store_data_in_mem_only") {
-            inMem = true
-        }
-#endif
-        return inMem
-    }
-    
-    func modelContext() -> ModelContext {
+    init(inMemoryOnly: Bool = false, weatherAPIKey: String) {
         //Use this code to blow away the macOS app's previous SwiftData store.
 //        let urlApp = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).last
 //        let url = urlApp!.appendingPathComponent("default.store")
 //        if FileManager.default.fileExists(atPath: url.path) {
 //            print("macOS: delete the swiftData .store* files here if crash on launch: \(url.absoluteString)")
 //        }
-        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: inMemory)
+        let schema = Schema([LocationModel.self])
+        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: inMemoryOnly)
         do {
-
-            let container = try ModelContainer(for: schema, configurations: config)
-            return container.mainContext
+            self.modelContainer = try ModelContainer(for: schema, configurations: [config])
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }
-    }
-    
-    func weatherDataProvider() -> WeatherDataProvider {
-        WeatherAPIDataSource(apiKey: UserDefaults.standard.string(forKey: "apikey") ?? "")
+        weatherDataProvider = WeatherAPIDataSource(apiKey: weatherAPIKey)
     }
 }
-
-struct DefaultViewModelConfig: ViewModelConfiguration { }
 
 
 // MARK: Preview Implementation

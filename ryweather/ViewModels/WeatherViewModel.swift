@@ -13,26 +13,40 @@ import SwiftData
 class WeatherViewModel {
     //saved locations...
     var locations: [LocationModel] = []
-    
+    var selectedLocationId: LocationModel.ID?
+
     var selectedTempUnit: WeatherTempModel.TempUnit
     
     var searchText: String = ""
     var searchResults: [LocationModel] = []
     var selectedSearchLocation: LocationModel?
     
-    @ObservationIgnored private var modelContext: ModelContext
+    private var modelContext: ModelContext
     @ObservationIgnored private var weatherDataProvider: WeatherDataProvider
     
-    init(config: ViewModelConfiguration) {
-        self.modelContext = config.modelContext()
-        self.weatherDataProvider = config.weatherDataProvider()
-        
+    init(modelContext: ModelContext, weatherDataProvider: WeatherDataProvider) {
+        self.modelContext = modelContext
+        self.weatherDataProvider = weatherDataProvider
         self.selectedTempUnit = .fahrenheit
+        
+        fetchSavedLocations()
+    }
+    
+    private func fetchSavedLocations() {
+        do {
+            let descriptor = FetchDescriptor<LocationModel>(sortBy: [SortDescriptor(\.savedAt)])
+            locations = try modelContext.fetch(descriptor)
+        } catch {
+            print("Fetch failed")
+        }
     }
     
     //CRUD operations for locations array.
     func add(_ location: LocationModel) {
-        locations.append(location)
+        location.savedAt = Date()
+        modelContext.insert(location)
+        try? modelContext.save()
+        fetchSavedLocations()
     }
     
     func locationIndex(_ id: LocationModel.ID?) -> Int? {
@@ -45,38 +59,27 @@ class WeatherViewModel {
         return locations.first(where: { $0.id == id })
     }
     
-    func contains(_ location: LocationModel) -> Bool {
-        contains(location.id)
+    func delete(location: LocationModel) {
+        location.savedAt = nil
+        modelContext.delete(location)
+        try? modelContext.save()
+        fetchSavedLocations()
     }
     
-    func contains(_ id: LocationModel.ID?) -> Bool {
-        locationIndex(id) != nil
-    }
-    
-    func update(_ location: LocationModel) {
-        if let index = locationIndex(location.id) {
-            locations[index] = location
-        }
-    }
-    
-    func delete(_ location: LocationModel) {
-        delete(location.id)
-    }
-    
-    func delete(_ id: LocationModel.ID) {
-        if let index = locationIndex(id), locations.count > 1 {
-            locations.remove(at: index)
-        }
+    func showDetailsForSaved(location: LocationModel) {
+        selectedLocationId = location.id
+        selectedSearchLocation = nil
     }
 }
 
-// Sharde helper model transformation functions
+// Actions and model transformation methods
 extension WeatherViewModel {
-    func fetchCurrentWeather(for location: LocationModel) async throws -> WeatherModel? {
+    func fetchCurrentWeather(for location: LocationModel) async throws {
         let weatherModel = try await weatherDataProvider.fetchCurrentWeather(for: location.searchText)
-        return weatherModel
+        location.currentWeather = weatherModel
+        try? modelContext.save()
     }
-        
+            
     func onSearchTextChanged(from oldValue: String, to newValue: String) {
         // TODO: also add a debounce time buffer
         // TODO: also check the Task/threading, may need to queue these up
@@ -101,13 +104,14 @@ extension WeatherViewModel {
         logger.debug(">>> onSubmit of search: \(self.searchText) saving search matching location to 'selectedSearchLocation'")
         let location = searchResults.first { $0.searchText == self.searchText }
         guard let location = location else { return }
+        
         Task {
             do {
-                let weatherModel = try await weatherDataProvider.fetchCurrentWeather(for: location.searchText)
-                
+//                try await fetchCurrentWeather(for: location)
                 // TODO:
-//                selectedSearchLocation = //LocationModel(location.name, id: location.id, currentWeather: weatherModel)
-                
+
+                //TEMP HACK
+                add(location)
                 
             } catch {
                 logger.error("onSubmit, failed to get searched weather data: \(error)")

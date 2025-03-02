@@ -10,21 +10,20 @@ import SwiftUI
 struct ContentView: View {
     @Bindable var viewModel: WeatherViewModel
 
-    @State private var selectedLocationId: LocationModel.ID?
     var body: some View {
         NavigationSplitView(columnVisibility: .constant(.all), preferredCompactColumn: .constant(.sidebar)) {
-            LocationList(selectedLocationId: $selectedLocationId, searchText: $viewModel.searchText)
+            LocationList(viewModel: viewModel)
         } detail: {
-            LocationWeatherView(selectedLocationId: $selectedLocationId)
+            LocationWeatherView(viewModel: viewModel)
         }
 #if os(macOS)
         .searchable(text: $viewModel.searchText,
                     placement: .automatic,
-                    prompt: "Search by City Name")
+                    prompt: "City Name, Airport, or Zip Code")
 #else
         .searchable(text: $viewModel.searchText,
                     placement: .navigationBarDrawer(displayMode: .always),
-                    prompt: "Search by City Name")
+                    prompt: "City Name, Airport, or Zip Code")
 #endif
         .searchSuggestions {
             ForEach(viewModel.searchResults) { suggestedLocation in
@@ -32,6 +31,13 @@ struct ContentView: View {
                     .searchCompletion(suggestedLocation.searchText)
             }
         }
-
+        .onChange(of: viewModel.searchText) { oldValue, newValue in
+            viewModel.onSearchTextChanged(from: oldValue, to: newValue)
+        }
+        .onSubmit(of: .search) {
+            withAnimation {
+                viewModel.onSubmitOfSearch()
+            }
+        }
     }
 }
