@@ -32,6 +32,7 @@ struct ContentView: View {
             LocationList(viewModel: viewModel)
         } detail: {
             LocationWeatherDetailView(viewModel: viewModel)
+                .navigationBarBackButtonHidden(false)
         }
         .sheet(isPresented: isSheetDetailPresented) {
             LocationWeatherDetailView(viewModel: viewModel)

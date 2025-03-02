@@ -13,7 +13,7 @@ struct LocationSearchResultModel {
 }
 
 @Model
-class LocationModel: Identifiable {
+class LocationModel: Identifiable, Hashable {
     @Attribute(.unique) var id: Int
     var name: String
     var region: String

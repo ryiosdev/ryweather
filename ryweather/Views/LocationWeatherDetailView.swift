@@ -12,7 +12,14 @@ struct LocationWeatherDetailView: View {
 
     var body: some View {
         if let location = viewModel.detailViewLocation {
-            CurrentWeatherView(location: location, tempUnit: viewModel.selectedTempUnit)
+            VStack {
+                CurrentWeatherView(location: location, tempUnit: viewModel.selectedTempUnit)
+                if location.savedAt == nil {
+                    Button("Add") {
+                        viewModel.add(location)
+                    }
+                }
+            }
         } else {
             Text("Select a Location")
                 .foregroundStyle(.secondary)

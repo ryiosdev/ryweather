@@ -12,17 +12,19 @@ struct LocationList: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 #endif
     @Bindable var viewModel: WeatherViewModel
+    @State private var selection: LocationModel?
     
     var body: some View {
-        List() {//selection: $viewModel.selectedLocationId) {
-            ForEach(viewModel.locations, id: \.id) { location in
+        List(viewModel.locations, id: \.self, selection: $selection) { location in
+            NavigationLink {
+                LocationWeatherDetailView(viewModel: viewModel)
+                    .onAppear {
+                        viewModel.detailViewLocation = location
+                    }
+            } label: {
                 SavedLocationRow(location: location, tempUnit: viewModel.selectedTempUnit)
                     .task {
                         await viewModel.updateCurrentWeather(for: location)
-                    }
-                    .onTapGesture {
-                        //TODO: this is still a bit backwards, the List's selection binding should drive what's in the view (
-                        viewModel.detailViewLocation = location
                     }
                     .swipeActions(edge: .trailing) {
                         Button(role: .destructive) {
@@ -34,6 +36,10 @@ struct LocationList: View {
                         }
                     }
             }
+        }
+        .onChange(of: selection) { oldValue, newValue in
+            print("selection changed from \(oldValue?.name ?? "") to \(newValue?.name ?? "")")
+            viewModel.detailViewLocation = newValue
         }
 #if os(macOS)
         // macOS right click delete

@@ -13,7 +13,6 @@ import SwiftData
 class WeatherViewModel {
     //saved locations...
     var locations: [LocationModel] = []
-//    var selectedLocationId: LocationModel.ID?
 
     var selectedTempUnit: WeatherTempModel.TempUnit
     
