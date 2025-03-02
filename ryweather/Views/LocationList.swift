@@ -15,7 +15,7 @@ struct LocationList: View {
     
     var body: some View {
         List() {//selection: $viewModel.selectedLocationId) {
-            ForEach(viewModel.locations) { location in
+            ForEach(viewModel.locations, id: \.id) { location in
                 SavedLocationRow(location: location, tempUnit: viewModel.selectedTempUnit)
                     .task {
                         await viewModel.updateCurrentWeather(for: location)
