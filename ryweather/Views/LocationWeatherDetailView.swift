@@ -7,44 +7,39 @@
 
 import SwiftUI
 
-struct LocationWeatherView: View {
-    @Binding var selectedLocationId: LocationModel.ID?
-    @Environment(WeatherViewModel.self) private var viewModel
+struct LocationWeatherDetailView: View {
+    @Bindable var viewModel: WeatherViewModel
+    @Environment(\.dismiss) private var dismiss
 
-    private var location: Binding<LocationModel> {
-        Binding {
-            
-            // TODO: move this which model to display logic to viewModel
-            if let searchedLocation = viewModel.selectedSearchLocation {
-                return searchedLocation
-            }
-            guard let id = selectedLocationId, let loc = viewModel.location(with: id) else  {
-                return LocationModel("LOL WAT?")
-            }
-            return loc
-            
-        } set: { updatedLocation in
-            viewModel.update(updatedLocation)
-        }
-    }
-    
     var body: some View {
-        ZStack {
-            // TODO: move this should show detail logic to viewModel
-            if viewModel.contains(selectedLocationId) || viewModel.selectedSearchLocation != nil {
-                CurrentWeatherView(location: location)
-            } else {
-                Text("Select a Location")
-                    .foregroundStyle(.secondary)
+        if let location = viewModel.selectedLocation ?? viewModel.detailViewLocation {
+            VStack {
+                CurrentWeatherView(location: location, tempUnit: viewModel.selectedTempUnit)
+                    .task {
+                        if location.currentWeather == nil {
+                            await viewModel.updateCurrentWeather(for: location)
+                        }
+                    }
+                if !viewModel.locations.contains(where: {$0.id == location.id} ) {
+                    Button("Add") {
+                        withAnimation {
+                            viewModel.add(location)
+                            
+                        }
+                    }
+                }
             }
+        } else {
+            Text("Select a Location")
+                .foregroundStyle(.secondary)
         }
     }
 }
 
 struct CurrentWeatherView: View {
-    @Environment(WeatherViewModel.self) private var viewModel
     @ScaledMetric var scale: CGFloat = 1.0
-    @Binding var location: LocationModel
+    var location: LocationModel
+    var tempUnit: WeatherTempModel.TempUnit
 
     var body: some View {
         VStack(spacing: 5) {
@@ -53,7 +48,7 @@ struct CurrentWeatherView: View {
             locationName()
             Group {
                 Text(location.currentWeather?.condition.text ?? "Searching...") // the "Searching..." is a placeholder string for redaction
-                Text("Feels Like: " + String(format: "%.0fº", location.currentWeather?.feelsLike(in: viewModel.selectedTempUnit) ?? "--"))
+                Text("Feels Like: " + String(format: "%.0fº", location.currentWeather?.feelsLike(in: tempUnit) ?? "--"))
             }
             .foregroundStyle(.secondary)
             .redacted(reason: location.currentWeather == nil ? .placeholder : [])
@@ -63,7 +58,7 @@ struct CurrentWeatherView: View {
     @ViewBuilder
     func tempView() -> some View {
         Group {
-            if let temp = location.currentWeather?.temp(in: viewModel.selectedTempUnit) {
+            if let temp = location.currentWeather?.temp(in: tempUnit) {
                 Text(String(format: " %.0fº", temp)) //The extra white space is to help center the digits
             } else {
                 Text("--")
@@ -103,28 +98,11 @@ struct CurrentWeatherView: View {
         VStack {
             Text(location.name)
                 .font(.title)
-            if let region = location.region {
-                Text(region)
-                    .font(.caption)
-            }
-            if let country = location.country {
-                Text(country)
-                    .font(.caption2)
-            }
-        }
-    }
-    
-    func systemImageName(for unit: WeatherTempModel.TempUnit) -> String {
-        switch (unit) {
-        case .celsius:
-            "degreesign.celsius"
-        case .fahrenheit:
-            "degreesign.fahrenheit"
+            Text(location.region)
+                .font(.caption)
+            Text(location.country)
+                .font(.caption2)
         }
     }
 }
 
-#Preview(traits: .sampleWeatherViewModel) {
-    @Previewable @State var id: LocationModel.ID? = 0
-    LocationWeatherView(selectedLocationId: $id)
-}

@@ -40,7 +40,7 @@ struct WeatherAPIDataSource {
 extension WeatherAPIDataSource: WeatherDataProvider {
     func search(for searchText: String) async throws -> LocationSearchResultModel {
         let url = try urlWithAPIKey(endpoint: .search).appending(queryItems: [URLQueryItem(name: "q", value: searchText)])
-        logger.debug("search url = \(url)")
+        logger.debug("location search url = \(url)")
         let (data, response) = try await URLSession.shared.data(from: url)
 
         guard let response = response as? HTTPURLResponse, response.statusCode == 200 else {
@@ -75,16 +75,16 @@ extension WeatherAPIDataSource: WeatherDataProvider {
                               name: json.name,
                               region: json.region,
                               country: json.country,
-                              url: json.url.replacingOccurrences(of: "-", with: " "))
+                              searchText: json.url.replacingOccurrences(of: "-", with: " "))
             }
             let searchResultModel = LocationSearchResultModel(searchText: searchText, locations: locationModels)
             return searchResultModel
         }
     }
     
-
     func fetchCurrentWeather(for locationDescription: String) async throws -> WeatherModel {
         let url = try urlWithAPIKey(endpoint: .current).appending(queryItems: [URLQueryItem(name: "q", value: locationDescription)])
+        logger.debug("current weather url = \(url)")
         let (data, response) = try await URLSession.shared.data(from: url)
 
         guard let response = response as? HTTPURLResponse, response.statusCode == 200 else {

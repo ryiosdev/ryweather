@@ -8,76 +8,39 @@
 import SwiftUI
 
 struct LocationList: View {
-    @Binding var selectedLocationId: LocationModel.ID?
-    @Binding var searchText: String
-    
-    @Environment(WeatherViewModel.self) private var viewModel
-    
-    //TODO: isSearching needs bo be on the wrapper view that contains the 'List' to work...
-    @Environment(\.isSearching) var isSearching
+#if os(iOS)
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+#endif
+    @Bindable var viewModel: WeatherViewModel
 
     var body: some View {
-        NavigationStack {
-            List(viewModel.locations, selection: $selectedLocationId) { location in
-                NavigationLink(value: location.id) {
-                    locationRow(location)
-                }
+        List(viewModel.locations, id: \.self, selection: $viewModel.selectedLocation) { location in
+            NavigationLink(value: location) {
+                SavedLocationRow(location: location, tempUnit: viewModel.selectedTempUnit)
+                    .task {
+                        await viewModel.updateCurrentWeather(for: location)
+                    }
+                    .swipeActions(edge: .trailing) {
+                        Button(role: .destructive) {
+                            withAnimation {
+                                viewModel.delete(location: location)
+                            }
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
             }
-            .searchable(text: $searchText, suggestions: {
-                ForEach(viewModel.searchResults) { suggestion in
-                    searchResultRow(suggestion)
-                        .searchCompletion(suggestion.currentUrl ?? "")
-                }
-            })
-        }
-        .onChange(of: searchText) { oldValue, newValue in
-            viewModel.onSearchTextChanged(from: oldValue, to: newValue)
-        }
-        .onSubmit(of: .search) {
-            //deselect anytyhing previously saved and shown.
-            selectedLocationId = nil
-            // TODO: programatically push to detail view
-            viewModel.onSubmitOfSearch()
         }
 #if os(macOS)
-        .navigationSplitViewColumnWidth(min: 180, ideal: 200)
-#endif
-    }
-    
-    @ViewBuilder func locationRow(_ location: LocationModel) -> some View {
-        HStack {
-            Text(location.name)
-            Spacer()
-            if let temp = location.currentWeather?.temp(in: viewModel.selectedTempUnit) {
-                Text(String(format: "%.0fº", temp))
-            }
-        }.task {
-            if location.currentWeather == nil {
-                do {
-                    try await viewModel.fetchCurrentWeather(for: location)
-                } catch is CancellationError {
-                    logger.warning("fetch task : cancelled!? (maybe view disappeared)")
-                } catch {
-                    logger.error("fetch task : This is fine! \(error)")
+        .contextMenu(forSelectionType: LocationModel.self) { locations in
+            Button("Delete", role: .destructive) {
+                withAnimation {
+                    for location in locations {
+                        viewModel.delete(location: location)                }
                 }
             }
         }
-    }
-    
-    @ViewBuilder func searchResultRow(_ location: LocationModel) -> some View {
-        VStack(alignment: .leading) {
-            Text(location.name + (location.region == nil ? "" : ", " + location.region!))
-            Text(location.country ?? "")
-                .font(.caption)
-
-        }
-    }
-}
-
-#Preview(traits: .sampleWeatherViewModel) {
-    @Previewable @State var id: LocationModel.ID? = 0
-    @Previewable @State var searchText: String = ""
-    NavigationStack {
-        LocationList(selectedLocationId: $id, searchText: $searchText)
+        .navigationSplitViewColumnWidth(min: 180, ideal: 200)
+#endif
     }
 }

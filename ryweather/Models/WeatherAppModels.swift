@@ -5,36 +5,33 @@
 //  Created by Ryan Young on 2/8/25.
 //
 import Foundation
+import SwiftData
 
 struct LocationSearchResultModel {
     var searchText: String
     var locations: [LocationModel]
 }
 
-struct LocationModel: Identifiable, Hashable {
-    let id: Int
-    let name: String
-    var region: String?
-    var country: String?
-    var currentUrl: String?
-    var currentWeather: WeatherModel?
+@Model
+class LocationModel: Identifiable, Hashable {
+    @Attribute(.unique) var id: Int
+    var name: String
+    var region: String
+    var country: String
+    var searchText: String
+    var savedAt: Date?
+    var currentWeather: WeatherModel? = nil
     
-    init(_ name: String, id: Int = 0, currentWeather: WeatherModel? = nil) {
-        self.name = name
-        self.id = id
-        self.currentWeather = currentWeather
-    }
-    
-    init(id: Int, name: String, region: String, country: String, url: String) {
+    init(id: Int, name: String, region: String, country: String, searchText: String) {
         self.id = id
         self.name = name
         self.region = region
         self.country = country
-        self.currentUrl = url
+        self.searchText = searchText
     }
 }
 
-struct WeatherModel: Hashable {
+struct WeatherModel: Codable {
     var temps: [WeatherTempModel]
     var condition: WeatherConditionModel
     
@@ -47,8 +44,8 @@ struct WeatherModel: Hashable {
     }
 }
 
-struct WeatherTempModel: Hashable {
-    enum TempUnit: String, CaseIterable {
+struct WeatherTempModel: Codable {
+    enum TempUnit: String, Codable {
         case celsius
         case fahrenheit
     }
@@ -57,7 +54,7 @@ struct WeatherTempModel: Hashable {
     var feelsLike: Double?
 }
 
-struct WeatherConditionModel: Hashable {
+struct WeatherConditionModel: Codable {
     var text: String
     var iconUrl: String?
 }
