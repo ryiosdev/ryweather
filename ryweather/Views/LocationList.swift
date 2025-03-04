@@ -12,16 +12,10 @@ struct LocationList: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 #endif
     @Bindable var viewModel: WeatherViewModel
-    @State private var selection: LocationModel?
-    
+
     var body: some View {
-        List(viewModel.locations, id: \.self, selection: $selection) { location in
-            NavigationLink {
-                LocationWeatherDetailView(viewModel: viewModel)
-                    .onAppear {
-                        viewModel.detailViewLocation = location
-                    }
-            } label: {
+        List(viewModel.locations, id: \.self, selection: $viewModel.selectedLocation) { location in
+            NavigationLink(value: location) {
                 SavedLocationRow(location: location, tempUnit: viewModel.selectedTempUnit)
                     .task {
                         await viewModel.updateCurrentWeather(for: location)
@@ -37,23 +31,16 @@ struct LocationList: View {
                     }
             }
         }
-        .onChange(of: selection) { oldValue, newValue in
-            print("selection changed from \(oldValue?.name ?? "") to \(newValue?.name ?? "")")
-            viewModel.detailViewLocation = newValue
-        }
 #if os(macOS)
-        // macOS right click delete
-//        .contextMenu(forSelectionType: Item.ID.self) { ids in
-//            // if at least one side bar row selected
-//            if viewModel.shouldShowDeleteButton(for: ids) {
-//                Button("Delete", role: .destructive) {
-//                    withAnimation {
-//                        viewModel.deleteSideBarItems(ids: ids)
-//                    }
-//                }
-//            }
-//        }
-//        .navigationSplitViewColumnWidth(min: 180, ideal: 200)
+        .contextMenu(forSelectionType: LocationModel.self) { locations in
+            Button("Delete", role: .destructive) {
+                withAnimation {
+                    for location in locations {
+                        viewModel.delete(location: location)                }
+                }
+            }
+        }
+        .navigationSplitViewColumnWidth(min: 180, ideal: 200)
 #endif
     }
 }

@@ -8,15 +8,24 @@
 import SwiftUI
 
 struct LocationWeatherDetailView: View {
-    var viewModel: WeatherViewModel
+    @Bindable var viewModel: WeatherViewModel
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        if let location = viewModel.detailViewLocation {
+        if let location = viewModel.selectedLocation ?? viewModel.detailViewLocation {
             VStack {
                 CurrentWeatherView(location: location, tempUnit: viewModel.selectedTempUnit)
-                if location.savedAt == nil {
+                    .task {
+                        if location.currentWeather == nil {
+                            await viewModel.updateCurrentWeather(for: location)
+                        }
+                    }
+                if !viewModel.locations.contains(where: {$0.id == location.id} ) {
                     Button("Add") {
-                        viewModel.add(location)
+                        withAnimation {
+                            viewModel.add(location)
+                            
+                        }
                     }
                 }
             }

@@ -13,11 +13,13 @@ import SwiftData
 class WeatherViewModel {
     //saved locations...
     var locations: [LocationModel] = []
+    var selectedLocation: LocationModel? //side bar selected item
 
     var selectedTempUnit: WeatherTempModel.TempUnit
     
     var searchText: String = ""
-    var searchResults: [LocationModel] = []
+    var searchResults: [String : LocationModel] = [:]
+    var orderedSearchResultsKeys: [String] = []
     
     var detailViewLocation: LocationModel?
     
@@ -46,17 +48,8 @@ class WeatherViewModel {
         location.savedAt = Date()
         modelContext.insert(location)
         try? modelContext.save()
+        logger.debug("Added location : \(location.name) id : \(location.id)")
         fetchSavedLocations()
-    }
-    
-    func locationIndex(_ id: LocationModel.ID?) -> Int? {
-        guard let id else { return nil }
-        return locations.firstIndex(where: { $0.id == id })
-    }
-    
-    func location(with id: Int?) -> LocationModel? {
-        guard let id else { return nil }
-        return locations.first(where: { $0.id == id })
     }
     
     func delete(location: LocationModel) {
@@ -68,61 +61,62 @@ class WeatherViewModel {
 }
 
 // Actions and model transformation methods
+@MainActor
 extension WeatherViewModel {
     func updateCurrentWeather(for location: LocationModel) async {
         logger.debug("updating current weather for : \(location.name)")
         do {
-            let weatherModel = try await weatherDataProvider.fetchCurrentWeather(for: location.searchText)
-            location.currentWeather = weatherModel
-            if locations.contains(location) {
-                try modelContext.save()
+            let weatherModel = try await weatherDataProvider.fetchCurrentWeather(for: "id:\(location.id)")
+            await MainActor.run {
+                location.currentWeather = weatherModel
             }
         } catch {
             logger.error("Error fetching weather: \(error)")
         }
     }
 
-    func onSearchTextChanged(from oldValue: String, to newValue: String) {
-        // TODO: also add a debounce time buffer
-        // TODO: also check the Task/threading, may need to queue these up
-        if searchText.count >= 3 && oldValue != newValue  && newValue != detailViewLocation?.searchText {
-            logger.debug("searching due to searchText changing to : '\(newValue)'")
-            Task {
-                do {
-                    let result = try await weatherDataProvider.search(for: newValue)
-                    
-                    //TODO: do we need the searchText String in the response model, it should match `self.searchText`
-                    searchResults = result.locations
-                } catch {
-                    logger.error("failed to get search result: \(error)")
+    func onSearchTextChanged(to newValue: String) {
+        guard newValue.count >= 3 else {
+            searchResults = [:]
+            orderedSearchResultsKeys = []
+            return
+        }
+        logger.debug("searchText triggered with newValue : '\(newValue)'")
+
+        //TODO: save this task, only run new version if not already running, cancel on search submit.
+        Task {
+            do {
+                var newSearchResults : [String: LocationModel] = [:]
+                var orderedKeys: [String] = []
+                
+                let result = try await weatherDataProvider.search(for: newValue)
+                logger.debug("task updating searchResults with count : \(result.locations.count)")
+                result.locations.forEach { location in
+                    orderedKeys.append(location.searchText)
+                    newSearchResults[location.searchText] = location
                 }
+                searchResults = newSearchResults
+                orderedSearchResultsKeys = orderedKeys
+            } catch {
+                logger.error("failed to get search result: \(error)")
             }
-        } else if searchText.count < 3 {
-            searchResults = []
         }
     }
 
     func onSubmitOfSearch() {
         logger.debug("on submit of search with text : '\(self.searchText)'")
-        if let location = searchResults.first(where: { $0.searchText == self.searchText }) {
+        
+        if let savedLocation = locations.first(where: { $0.searchText.lowercased() == searchText.lowercased()}) {
+            selectedLocation = savedLocation
+        } else if let location = searchResults[searchText] {
             detailViewLocation = location
+        } else if let prefixMatchKey = orderedSearchResultsKeys.first(where: {
+            $0.lowercased().hasPrefix(searchText.lowercased())
+        }) {
+            detailViewLocation = searchResults[prefixMatchKey]
         } else {
-            // check for partial matches
-            let locations = searchResults.filter( { $0.name.lowercased().contains(searchText.lowercased()) } )
-            
-            // if partial match, auto complete to the first item in the list.
-            if locations.count > 0 {
-                detailViewLocation = searchResults[0]
-            } else {
-                // no match
-                detailViewLocation = nil
-            }
-        }
-        if let location = detailViewLocation {
-            searchText = ""
-            Task {
-                await updateCurrentWeather(for: location)
-            }
+            // no match
+            detailViewLocation = nil
         }
     }
     

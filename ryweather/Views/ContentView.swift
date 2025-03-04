@@ -10,29 +10,15 @@ import SwiftUI
 struct ContentView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Bindable var viewModel: WeatherViewModel
-
-    private var isSheetDetailPresented: Binding<Bool> { Binding (
-        get: {
-            guard horizontalSizeClass == .compact else { return false }
-            if let detailViewLocation = viewModel.detailViewLocation {
-                return detailViewLocation.savedAt == nil 
-            } else {
-                return false
-            }
-        },
-        set: { isPresented in
-            if !isPresented {
-                self.viewModel.onDismissOfSheetDetailView()
-            }
-        })
-    }
     
     var body: some View {
         NavigationSplitView(columnVisibility: .constant(.all), preferredCompactColumn: .constant(.sidebar)) {
             LocationList(viewModel: viewModel)
         } detail: {
-            LocationWeatherDetailView(viewModel: viewModel)
-                .navigationBarBackButtonHidden(false)
+            NavigationStack {
+                LocationWeatherDetailView(viewModel: viewModel)
+            }
+            .navigationBarBackButtonHidden(false)
         }
         .sheet(isPresented: isSheetDetailPresented) {
             LocationWeatherDetailView(viewModel: viewModel)
@@ -47,18 +33,38 @@ struct ContentView: View {
                     prompt: "City Name, Airport, or Zip Code")
 #endif
         .searchSuggestions {
-            ForEach(viewModel.searchResults) { suggestedLocation in
-                SuggestionRow(location: suggestedLocation)
-                    .searchCompletion(suggestedLocation.searchText)
+            ForEach(viewModel.orderedSearchResultsKeys, id: \.self) { searchTextKey in
+                if let location = viewModel.searchResults[searchTextKey] {
+                    SuggestionRow(location: location)
+                        .searchCompletion(searchTextKey)
+                }
             }
         }
-        .onChange(of: viewModel.searchText) { oldValue, newValue in
-            viewModel.onSearchTextChanged(from: oldValue, to: newValue)
+        .onChange(of: viewModel.searchText) { _, newValue in
+            withAnimation{
+                viewModel.onSearchTextChanged(to: newValue)
+            }
         }
         .onSubmit(of: .search) {
             withAnimation {
                 viewModel.onSubmitOfSearch()
             }
         }
+    }
+    
+    private var isSheetDetailPresented: Binding<Bool> { Binding (
+        get: {
+            guard horizontalSizeClass == .compact else { return false }
+            //if detail view is set, with onSubmitOfSearch(), and the location isn't saved
+            if let location = viewModel.detailViewLocation {
+                return location.savedAt == nil
+            }
+            return false
+        },
+        set: { isPresented in
+            if !isPresented {
+                self.viewModel.onDismissOfSheetDetailView()
+            }
+        })
     }
 }
