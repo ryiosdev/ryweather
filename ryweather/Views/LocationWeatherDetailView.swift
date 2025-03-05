@@ -12,14 +12,10 @@ struct LocationWeatherDetailView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        if let location = viewModel.selectedLocation ?? viewModel.detailViewLocation {
+        if let location = viewModel.selectedLocation {
+            @Bindable var location = location
             VStack {
                 CurrentWeatherView(location: location, tempUnit: viewModel.selectedTempUnit)
-                    .task {
-                        if location.currentWeather == nil {
-                            await viewModel.updateCurrentWeather(for: location)
-                        }
-                    }
                 if !viewModel.locations.contains(where: {$0.id == location.id} ) {
                     Button("Add") {
                         withAnimation {
@@ -29,6 +25,7 @@ struct LocationWeatherDetailView: View {
                     }
                 }
             }
+//            .redacted(reason: location.currentWeather == nil ? .placeholder : [])
         } else {
             Text("Select a Location")
                 .foregroundStyle(.secondary)
@@ -43,66 +40,56 @@ struct CurrentWeatherView: View {
 
     var body: some View {
         VStack(spacing: 5) {
-            tempView()
-            conditionImage()
-            locationName()
-            Group {
-                Text(location.currentWeather?.condition.text ?? "Searching...") // the "Searching..." is a placeholder string for redaction
-                Text("Feels Like: " + String(format: "%.0fº", location.currentWeather?.feelsLike(in: tempUnit) ?? "--"))
+            
+            VStack {
+                Text(tempText())
+                    .font(.system(size: 64 * scale, weight: .light, design: .rounded))
+                Text(feelsLIkeText())
+                    .foregroundStyle(.secondary)
             }
-            .foregroundStyle(.secondary)
-            .redacted(reason: location.currentWeather == nil ? .placeholder : [])
-        }
-    }
-    
-    @ViewBuilder
-    func tempView() -> some View {
-        Group {
-            if let temp = location.currentWeather?.temp(in: tempUnit) {
-                Text(String(format: " %.0fº", temp)) //The extra white space is to help center the digits
-            } else {
-                Text("--")
-            }
-        }
-        .font(.system(size: 64 * scale, weight: .light, design: .rounded))
-    }
-    
-    @ViewBuilder
-    func conditionImage() -> some View {
-        // Don't show the `AsysncImage` if `currentWeather` (while loading) or the `iconUrl` is `nil`
-        if let iconUrl = location.currentWeather?.condition.iconUrl {
-            AsyncImage(url: URL(string: iconUrl)) { phase in
-                if let image = phase.image {
+
+            if let url = weatherIconURL() {
+                AsyncImage(url: url) { image in
                     image
-                        .resizable()
-                        .scaledToFit()
-                } else if phase.error != nil {
-                    EmptyView()
-                        .onAppear {
-                            logger.debug("AsysncImage error: \(String(describing: phase.error!))")
-                        }
-                } else {
-                    EmptyView()
-                        .onAppear {
-                            logger.debug("AsysncImage not loaded yet.")
-                        }
+                } placeholder: {
+                    ProgressView()
                 }
+                .frame(width: 64 * scale, height: 64 * scale)
             }
-            .frame(width: 100 * scale, height: 100 * scale)
-        } else {
-            EmptyView()
+            Text(conditionText())
+                .foregroundStyle(.secondary)
+            
+            Text(location.name)
+                .font(.headline)
+            Text("\(location.region), \(location.country)")
+                .font(.subheadline)
         }
     }
     
-    @ViewBuilder func locationName() -> some View {
-        VStack {
-            Text(location.name)
-                .font(.title)
-            Text(location.region)
-                .font(.caption)
-            Text(location.country)
-                .font(.caption2)
+    private func tempText() -> String {
+        if let temp = location.currentWeather?.temp(in: tempUnit) {
+            return String(format: "%.0fº", temp)
+        } else {
+            return "--"
         }
+    }
+    
+    private func weatherIconURL() -> URL? {
+        if let iconURL = location.currentWeather?.condition.iconUrl {
+            return URL(string: iconURL)
+        }
+        return nil
+    }
+    
+    private func feelsLIkeText() -> String {
+        if let feelsLike = location.currentWeather?.feelsLike(in: tempUnit) {
+            return "Feels Like: " + String(format: "%.0fº", feelsLike)
+        } else {
+            return "Feels Like: --"
+        }
+    }
+    
+    private func conditionText() -> String {
+        location.currentWeather?.condition.text ?? "Searching..."
     }
 }
-

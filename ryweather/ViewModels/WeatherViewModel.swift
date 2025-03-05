@@ -21,7 +21,7 @@ class WeatherViewModel {
     var searchResults: [String : LocationModel] = [:]
     var orderedSearchResultsKeys: [String] = []
     
-    var detailViewLocation: LocationModel?
+//    var detailViewLocation: LocationModel?
     
     private var modelContext: ModelContext
     @ObservationIgnored private var weatherDataProvider: WeatherDataProvider
@@ -56,6 +56,14 @@ class WeatherViewModel {
         location.savedAt = nil
         modelContext.delete(location)
         try? modelContext.save()
+        
+        if let index = locations.firstIndex(of: location) {
+            let beforeIndex = locations.index(before: index)
+            if selectedLocation == location, beforeIndex >= locations.startIndex {
+                selectedLocation = locations[beforeIndex]
+            }
+            locations.remove(at: index)
+        }
         fetchSavedLocations()
     }
 }
@@ -67,11 +75,9 @@ extension WeatherViewModel {
         logger.debug("updating current weather for : \(location.name)")
         do {
             let weatherModel = try await weatherDataProvider.fetchCurrentWeather(for: "id:\(location.id)")
-            await MainActor.run {
-                location.currentWeather = weatherModel
-            }
+            location.currentWeather = weatherModel
         } catch {
-            logger.error("Error fetching weather: \(error)")
+            logger.error("Error fetching weather: \(error.localizedDescription)")
         }
     }
 
@@ -95,6 +101,7 @@ extension WeatherViewModel {
                     orderedKeys.append(location.searchText)
                     newSearchResults[location.searchText] = location
                 }
+                
                 searchResults = newSearchResults
                 orderedSearchResultsKeys = orderedKeys
             } catch {
@@ -105,22 +112,28 @@ extension WeatherViewModel {
 
     func onSubmitOfSearch() {
         logger.debug("on submit of search with text : '\(self.searchText)'")
+        // note, the search doesn't need to be called again,
+        // since the last text change would have triggered an update to search results.
         
+        // if search matches a location already saved, select it
         if let savedLocation = locations.first(where: { $0.searchText.lowercased() == searchText.lowercased()}) {
             selectedLocation = savedLocation
+        // if user tapped a search suggestion, then searchText will equal the search result key
         } else if let location = searchResults[searchText] {
-            detailViewLocation = location
-        } else if let prefixMatchKey = orderedSearchResultsKeys.first(where: {
-            $0.lowercased().hasPrefix(searchText.lowercased())
-        }) {
-            detailViewLocation = searchResults[prefixMatchKey]
-        } else {
-            // no match
-            detailViewLocation = nil
+            selectedLocation = location
+        // if search results isn't empty, then auto-complete to the first search result
+        } else if let key = orderedSearchResultsKeys.first {
+            selectedLocation = searchResults[key]
+        }
+        
+        if let selected = selectedLocation {
+            Task {
+                await updateCurrentWeather(for: selected)
+            }
         }
     }
     
     func onDismissOfSheetDetailView() {
-        detailViewLocation = nil
+        selectedLocation = nil
     }
 }
