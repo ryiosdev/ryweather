@@ -8,17 +8,17 @@
 import SwiftUI
 
 struct LocationList: View {
-#if os(iOS)
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-#endif
     @Bindable var viewModel: WeatherViewModel
 
     var body: some View {
-        List(viewModel.locations, id: \.self, selection: $viewModel.selectedLocation) { location in
+        List(viewModel.locations, selection: $viewModel.selectedLocation) { location in
+            @Bindable var location = location
             NavigationLink(value: location) {
                 SavedLocationRow(location: location, tempUnit: viewModel.selectedTempUnit)
                     .task {
-                        await viewModel.updateCurrentWeather(for: location)
+                        guard location.currentWeather == nil else { return }
+                        let weather = await viewModel.getCurrentWeather(for: location.id)
+                        location.currentWeather = weather
                     }
                     .swipeActions(edge: .trailing) {
                         Button(role: .destructive) {

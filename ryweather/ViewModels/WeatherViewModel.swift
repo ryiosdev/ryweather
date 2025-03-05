@@ -21,7 +21,6 @@ class WeatherViewModel {
     var searchResults: [String : LocationModel] = [:]
     var orderedSearchResultsKeys: [String] = []
     
-//    var detailViewLocation: LocationModel?
     
     private var modelContext: ModelContext
     @ObservationIgnored private var weatherDataProvider: WeatherDataProvider
@@ -71,14 +70,15 @@ class WeatherViewModel {
 // Actions and model transformation methods
 @MainActor
 extension WeatherViewModel {
-    func updateCurrentWeather(for location: LocationModel) async {
-        logger.debug("updating current weather for : \(location.name)")
+    func getCurrentWeather(for locationId: Int) async -> WeatherModel? {
+        logger.debug("updating current weather for : \(locationId)")
         do {
-            let weatherModel = try await weatherDataProvider.fetchCurrentWeather(for: "id:\(location.id)")
-            location.currentWeather = weatherModel
+            let weatherModel = try await weatherDataProvider.fetchCurrentWeather(for: "id:\(locationId)")
+            return weatherModel
         } catch {
             logger.error("Error fetching weather: \(error.localizedDescription)")
         }
+        return nil
     }
 
     func onSearchTextChanged(to newValue: String) {
@@ -105,7 +105,7 @@ extension WeatherViewModel {
                 searchResults = newSearchResults
                 orderedSearchResultsKeys = orderedKeys
             } catch {
-                logger.error("failed to get search result: \(error)")
+                logger.error("failed to get search result: \(error.localizedDescription)")
             }
         }
     }
@@ -126,9 +126,10 @@ extension WeatherViewModel {
             selectedLocation = searchResults[key]
         }
         
+        //TODO: check if selected location's current weather was recently set (add timestamp to check against)
         if let selected = selectedLocation {
             Task {
-                await updateCurrentWeather(for: selected)
+                selected.currentWeather = await getCurrentWeather(for: selected.id)
             }
         }
     }
