@@ -21,7 +21,6 @@ class WeatherViewModel {
     var searchResults: [String : LocationModel] = [:]
     var orderedSearchResultsKeys: [String] = []
     
-    var detailViewLocation: LocationModel?
     
     private var modelContext: ModelContext
     @ObservationIgnored private var weatherDataProvider: WeatherDataProvider
@@ -56,6 +55,14 @@ class WeatherViewModel {
         location.savedAt = nil
         modelContext.delete(location)
         try? modelContext.save()
+        
+        if let index = locations.firstIndex(of: location) {
+            let beforeIndex = locations.index(before: index)
+            if selectedLocation == location, beforeIndex >= locations.startIndex {
+                selectedLocation = locations[beforeIndex]
+            }
+            locations.remove(at: index)
+        }
         fetchSavedLocations()
     }
 }
@@ -63,16 +70,15 @@ class WeatherViewModel {
 // Actions and model transformation methods
 @MainActor
 extension WeatherViewModel {
-    func updateCurrentWeather(for location: LocationModel) async {
-        logger.debug("updating current weather for : \(location.name)")
+    func getCurrentWeather(for locationId: Int) async -> WeatherModel? {
+        logger.debug("updating current weather for : \(locationId)")
         do {
-            let weatherModel = try await weatherDataProvider.fetchCurrentWeather(for: "id:\(location.id)")
-            await MainActor.run {
-                location.currentWeather = weatherModel
-            }
+            let weatherModel = try await weatherDataProvider.fetchCurrentWeather(for: "id:\(locationId)")
+            return weatherModel
         } catch {
-            logger.error("Error fetching weather: \(error)")
+            logger.error("Error fetching weather: \(error.localizedDescription)")
         }
+        return nil
     }
 
     func onSearchTextChanged(to newValue: String) {
@@ -95,32 +101,40 @@ extension WeatherViewModel {
                     orderedKeys.append(location.searchText)
                     newSearchResults[location.searchText] = location
                 }
+                
                 searchResults = newSearchResults
                 orderedSearchResultsKeys = orderedKeys
             } catch {
-                logger.error("failed to get search result: \(error)")
+                logger.error("failed to get search result: \(error.localizedDescription)")
             }
         }
     }
 
     func onSubmitOfSearch() {
         logger.debug("on submit of search with text : '\(self.searchText)'")
+        // note, the search doesn't need to be called again,
+        // since the last text change would have triggered an update to search results.
         
+        // if search matches a location already saved, select it
         if let savedLocation = locations.first(where: { $0.searchText.lowercased() == searchText.lowercased()}) {
             selectedLocation = savedLocation
+        // if user tapped a search suggestion, then searchText will equal the search result key
         } else if let location = searchResults[searchText] {
-            detailViewLocation = location
-        } else if let prefixMatchKey = orderedSearchResultsKeys.first(where: {
-            $0.lowercased().hasPrefix(searchText.lowercased())
-        }) {
-            detailViewLocation = searchResults[prefixMatchKey]
-        } else {
-            // no match
-            detailViewLocation = nil
+            selectedLocation = location
+        // if search results isn't empty, then auto-complete to the first search result
+        } else if let key = orderedSearchResultsKeys.first {
+            selectedLocation = searchResults[key]
+        }
+        
+        //TODO: check if selected location's current weather was recently set (add timestamp to check against)
+        if let selected = selectedLocation {
+            Task {
+                selected.currentWeather = await getCurrentWeather(for: selected.id)
+            }
         }
     }
     
     func onDismissOfSheetDetailView() {
-        detailViewLocation = nil
+        selectedLocation = nil
     }
 }

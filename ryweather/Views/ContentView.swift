@@ -20,9 +20,6 @@ struct ContentView: View {
             }
             .navigationBarBackButtonHidden(false)
         }
-        .sheet(isPresented: isSheetDetailPresented) {
-            LocationWeatherDetailView(viewModel: viewModel)
-        }
 #if os(macOS)
         .searchable(text: $viewModel.searchText,
                     placement: .automatic,
@@ -46,25 +43,9 @@ struct ContentView: View {
             }
         }
         .onSubmit(of: .search) {
-            withAnimation {
+//            withAnimation {
                 viewModel.onSubmitOfSearch()
-            }
+//            }
         }
-    }
-    
-    private var isSheetDetailPresented: Binding<Bool> { Binding (
-        get: {
-            guard horizontalSizeClass == .compact else { return false }
-            //if detail view is set, with onSubmitOfSearch(), and the location isn't saved
-            if let location = viewModel.detailViewLocation {
-                return location.savedAt == nil
-            }
-            return false
-        },
-        set: { isPresented in
-            if !isPresented {
-                self.viewModel.onDismissOfSheetDetailView()
-            }
-        })
     }
 }

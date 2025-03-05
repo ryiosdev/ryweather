@@ -8,15 +8,20 @@
 import SwiftUI
 
 struct SavedLocationRow: View {
-    var location: LocationModel
-    var tempUnit: WeatherTempModel.TempUnit
-    
+    let location: LocationModel
+    let tempUnit: WeatherTempModel.TempUnit
+        
     var body: some View {
-        HStack {
+        HStack(spacing: 5) {
             Text(location.name)
             Spacer()
-            if let temp = location.currentWeather?.temp(in: tempUnit) {
-                Text(String(format: "%.0fº", temp))
+            if let weather = location.currentWeather {
+                if let temp = weather.temp(in: tempUnit) {
+                    Text(String(format: "%.0fº", temp))
+                }
+//                if let url = weather.condition.iconUrl {
+//                    CacheableImage(url: url)
+//                }
             }
         }
     }

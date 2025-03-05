@@ -91,7 +91,6 @@ extension WeatherAPIDataSource: WeatherDataProvider {
             logger.warning("non-200 response: \(response.description)")
             throw WeatherDataError.invalidResponse
         }
-
         do {
             let decoder = JSONDecoder()
             decoder.keyDecodingStrategy = .convertFromSnakeCase
@@ -137,7 +136,7 @@ extension WeatherAPIDataSource: WeatherDataProvider {
                                          feelsLike: current.feelslikeF)
         
             let condition = WeatherConditionModel(text: current.condition.text,
-                                                  iconUrl: "https:" + current.condition.icon)
+                                                  iconUrl: URL(string: "https:" + current.condition.icon))
             let weather = WeatherModel(temps: [tempC, tempF],
                                        condition: condition)
             return weather

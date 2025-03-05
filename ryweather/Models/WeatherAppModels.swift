@@ -20,7 +20,7 @@ class LocationModel: Identifiable, Hashable {
     var country: String
     var searchText: String
     var savedAt: Date?
-    var currentWeather: WeatherModel? = nil
+    @Attribute(.ephemeral) var currentWeather: WeatherModel? = nil
     
     init(id: Int, name: String, region: String, country: String, searchText: String) {
         self.id = id
@@ -31,7 +31,7 @@ class LocationModel: Identifiable, Hashable {
     }
 }
 
-struct WeatherModel: Codable {
+struct WeatherModel: Codable, Equatable {
     var temps: [WeatherTempModel]
     var condition: WeatherConditionModel
     
@@ -44,7 +44,7 @@ struct WeatherModel: Codable {
     }
 }
 
-struct WeatherTempModel: Codable {
+struct WeatherTempModel: Codable, Equatable {
     enum TempUnit: String, Codable {
         case celsius
         case fahrenheit
@@ -54,7 +54,7 @@ struct WeatherTempModel: Codable {
     var feelsLike: Double?
 }
 
-struct WeatherConditionModel: Codable {
+struct WeatherConditionModel: Codable, Equatable {
     var text: String
-    var iconUrl: String?
+    var iconUrl: URL?
 }
