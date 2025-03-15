@@ -26,13 +26,17 @@ struct DefaultViewModelConfig: ViewModelConfiguration {
     var weatherDataProvider: WeatherDataProvider
     
     init(inMemoryOnly: Bool = false, weatherAPIKey: String) {
+
         //Use this code to blow away the macOS app's previous SwiftData store.
-        let urlApp = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).last
-        let url = urlApp!.appendingPathComponent("default.store")
-        if FileManager.default.fileExists(atPath: url.path) {
-            print("macOS: delete the swiftData .store* files here if crash on launch: \(url.absoluteString)")
-        }
-        let schema = Schema([LocationModel.self])
+//        #if os(macOS)
+//        let urlApp = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).last
+//        let url = urlApp!.appendingPathComponent("default.store")
+//        if FileManager.default.fileExists(atPath: url.path) {
+//            print("macOS: delete the swiftData .store* files here if crash on launch: \(url.absoluteString)")
+//        }
+//        #endif
+        
+        let schema = Schema([LocationModel.self, CachedImage.self])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: inMemoryOnly)
         do {
             modelContainer = try ModelContainer(for: schema, configurations: [config])
