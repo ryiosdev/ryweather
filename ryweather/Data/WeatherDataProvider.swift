@@ -16,4 +16,5 @@ enum WeatherDataError: Error {
     case invalidURL
     case invalidResponse
     case invalidData
+    case invalidSearchText
 }

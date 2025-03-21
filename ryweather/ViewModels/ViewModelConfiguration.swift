@@ -14,13 +14,6 @@ protocol ViewModelConfiguration {
     var weatherDataProvider: WeatherDataProvider { get }
 }
 
-// MARK: Default Implementation
-extension ViewModelConfiguration {
-    func weatherDataProvider() -> WeatherDataProvider {
-        WeatherAPIDataSource(apiKey: UserDefaults.standard.string(forKey: "apikey") ?? "")
-    }
-}
-
 struct DefaultViewModelConfig: ViewModelConfiguration {
     var modelContainer: ModelContainer
     var weatherDataProvider: WeatherDataProvider
@@ -43,7 +36,7 @@ struct DefaultViewModelConfig: ViewModelConfiguration {
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }
-        weatherDataProvider = WeatherAPIDataSource(apiKey: weatherAPIKey)
+        weatherDataProvider = WeatherAPIDataSource(config: WeatherAPIConfig(apiKey: weatherAPIKey))
     }
 }
 
